@@ -1,0 +1,11 @@
+{
+  "outDir": "builds",
+  "filename": "{app}_{name}_{version}_{date}_{language}_{network}",
+  "app": "PlayableLab",
+  "name": "Catcher",
+  "version": "v1",
+  "language": "en",
+  "orientation": "portrait",
+  "googlePlayUrl": "https://play.google.com/store/games",
+  "appStoreUrl": "https://www.apple.com/app-store/"
+}
