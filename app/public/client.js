@@ -533,6 +533,8 @@ function renderBuildConfigFields(config) {
   elements.buildConfigFields.replaceChildren();
 
   for (const [key, value] of Object.entries(config || {})) {
+    if (key === 'outDir') continue;
+
     const wrapper = document.createElement('div');
     wrapper.className = 'field';
 
@@ -610,7 +612,7 @@ async function openBuildDialog() {
 }
 
 function collectBuildConfig() {
-  const config = {};
+  const config = { ...(state.buildOptions?.buildConfig || {}) };
 
   for (const input of elements.buildConfigFields.querySelectorAll('input, select')) {
     if (input.type === 'checkbox') config[input.name] = input.checked;
