@@ -120,7 +120,7 @@ function renderPlayableDetail() {
     </dl>
     <div class="project-actions">
       <button class="primary-button" type="button" id="previewPlayableButton">Preview</button>
-      <button class="secondary-button" type="button" id="buildPlayableButton">Build</button>
+      <button class="build-button" type="button" id="buildPlayableButton">Build</button>
     </div>
   `;
 
@@ -388,7 +388,7 @@ async function previewSelectedPlayable() {
   if (!playable) return;
 
   const previewWindow = window.open('', '_blank');
-  setStatus('Starting preview');
+  setStatus('Building preview');
 
   try {
     const response = await fetch(`/api/playables/${playable.slug}/preview`, { method: 'POST' });
@@ -397,7 +397,7 @@ async function previewSelectedPlayable() {
 
     setStatus('Preview ready');
     if (previewWindow) {
-      previewWindow.location.href = body.preview.url;
+      previewWindow.location.href = new URL(body.preview.url, window.location.origin).href;
     } else {
       setStatus(`Preview ready: ${body.preview.url}`);
     }

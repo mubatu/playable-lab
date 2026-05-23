@@ -1,11 +1,9 @@
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
-import { createWriteStream } from 'node:fs';
 import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { extname, join, normalize, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
-import net from 'node:net';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const require = createRequire(import.meta.url);
@@ -14,7 +12,6 @@ const rootDir = resolve(__dirname, '..');
 const publicDir = join(__dirname, 'public');
 const templatesDir = join(rootDir, 'templates');
 const playablesDir = join(rootDir, 'my-playables');
-const activePreviews = new Map();
 
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -385,82 +382,6 @@ async function createPlayable(templateId, payload) {
   }
 }
 
-function findOpenPort(startPort = 4100) {
-  return new Promise((resolvePort) => {
-    const server = net.createServer();
-    server.unref();
-    server.on('error', () => resolvePort(findOpenPort(startPort + 1)));
-    server.listen(startPort, '127.0.0.1', () => {
-      const { port } = server.address();
-      server.close(() => resolvePort(port));
-    });
-  });
-}
-
-async function waitForPreview(port, timeoutMs = 20000) {
-  const start = Date.now();
-
-  while (Date.now() - start < timeoutMs) {
-    try {
-      await new Promise((resolveSocket, reject) => {
-        const socket = net.createConnection({ port, host: '127.0.0.1' });
-        socket.once('connect', () => {
-          socket.end();
-          resolveSocket();
-        });
-        socket.once('error', reject);
-        socket.setTimeout(1000, () => {
-          socket.destroy();
-          reject(new Error('Timed out connecting to preview server.'));
-        });
-      });
-      return;
-    } catch {
-      await new Promise((resolveSleep) => setTimeout(resolveSleep, 250));
-    }
-  }
-
-  throw new Error('Preview server did not start in time.');
-}
-
-async function previewPlayable(slug) {
-  const playable = await getPlayable(slug);
-  const existing = activePreviews.get(slug);
-
-  if (existing && !existing.child.killed) {
-    return {
-      slug,
-      url: `http://127.0.0.1:${existing.port}`
-    };
-  }
-
-  const port = await findOpenPort(4100 + activePreviews.size);
-  const logPath = join(playable.path, 'preview.log');
-  const logStream = createWriteStream(logPath, { flags: 'a' });
-  const child = spawn('npm', ['run', 'dev', '--', '--port', String(port)], {
-    cwd: playable.path,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, BROWSER: 'none' }
-  });
-
-  child.stdout.pipe(logStream);
-  child.stderr.pipe(logStream);
-  activePreviews.set(slug, { child, port });
-  child.once('exit', () => activePreviews.delete(slug));
-
-  try {
-    await waitForPreview(port);
-  } catch (error) {
-    child.kill('SIGTERM');
-    throw error;
-  }
-
-  return {
-    slug,
-    url: `http://127.0.0.1:${port}`
-  };
-}
-
 function normalizeBuildConfig(rawConfig) {
   const config = {};
 
@@ -496,6 +417,47 @@ function runBuildCommand(playableDir, network, configPath) {
   });
 }
 
+async function findNewestHtml(root, sinceMs) {
+  let newest = null;
+
+  async function walk(directory) {
+    const entries = await readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = join(directory, entry.name);
+      const rel = relative(root, fullPath);
+      if (rel.startsWith('src') || rel.startsWith('.playable-lab') || rel.startsWith('node_modules')) continue;
+
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+      } else if (entry.isFile() && extname(entry.name) === '.html') {
+        const fileStats = await stat(fullPath);
+        if (fileStats.mtimeMs >= sinceMs && (!newest || fileStats.mtimeMs > newest.mtimeMs)) {
+          newest = { path: fullPath, rel, mtimeMs: fileStats.mtimeMs };
+        }
+      }
+    }
+  }
+
+  await walk(root);
+  return newest;
+}
+
+async function previewPlayable(slug) {
+  const playable = await getPlayable(slug);
+  const startedAt = Date.now();
+  const result = await runBuildCommand(playable.path, 'preview', 'build.json');
+
+  const html = await findNewestHtml(playable.path, startedAt - 1000);
+  if (!html) throw new Error('Preview build completed, but no generated HTML file was found.');
+
+  return {
+    slug,
+    result,
+    path: html.rel,
+    url: `/generated/${encodeURIComponent(slug)}/${html.rel.split('/').map(encodeURIComponent).join('/')}`
+  };
+}
+
 async function buildPlayable(slug, payload) {
   const playable = await getPlayable(slug);
   const networks = Array.isArray(payload.networks) ? payload.networks : [];
@@ -505,17 +467,14 @@ async function buildPlayable(slug, payload) {
   if (invalidNetworks.length > 0) throw new Error(`Unsupported network: ${invalidNetworks.join(', ')}`);
 
   const buildConfig = normalizeBuildConfig(payload.config);
-  const labDir = join(playable.path, '.playable-lab');
-  const configPath = join(labDir, `build-${Date.now()}.json`);
-  const relativeConfigPath = relative(playable.path, configPath);
+  const configPath = join(playable.path, 'build.json');
   const results = [];
 
-  await mkdir(labDir, { recursive: true });
   await writeFile(configPath, `${JSON.stringify(buildConfig, null, 2)}\n`);
 
   try {
     for (const network of networks) {
-      results.push(await runBuildCommand(playable.path, network, relativeConfigPath));
+      results.push(await runBuildCommand(playable.path, network, 'build.json'));
     }
   } catch (error) {
     if (error.result) results.push(error.result);
@@ -535,6 +494,34 @@ async function serveStatic(req, res) {
   const requestUrl = new URL(req.url, 'http://127.0.0.1');
   const pathname = requestUrl.pathname === '/' ? '/index.html' : requestUrl.pathname;
   const filePath = safeJoin(publicDir, decodeURIComponent(pathname.replace(/^\/+/, '')));
+
+  try {
+    const fileStats = await stat(filePath);
+    if (!fileStats.isFile()) {
+      sendText(res, 404, 'Not found');
+      return;
+    }
+
+    const ext = extname(filePath);
+    res.writeHead(200, { 'content-type': contentTypes[ext] || 'application/octet-stream' });
+    res.end(await readFile(filePath));
+  } catch {
+    sendText(res, 404, 'Not found');
+  }
+}
+
+async function serveGenerated(req, res) {
+  const requestUrl = new URL(req.url, 'http://127.0.0.1');
+  const match = requestUrl.pathname.match(/^\/generated\/([^/]+)\/(.+)$/);
+  if (!match) {
+    sendText(res, 404, 'Not found');
+    return;
+  }
+
+  const slug = decodeURIComponent(match[1]);
+  const relativeFilePath = match[2].split('/').map(decodeURIComponent).join('/');
+  const playableDir = getPlayableDir(slug);
+  const filePath = safeJoin(playableDir, relativeFilePath);
 
   try {
     const fileStats = await stat(filePath);
@@ -603,6 +590,10 @@ async function requestHandler(req, res) {
       await handleApi(req, res);
       return;
     }
+    if (req.url.startsWith('/generated/')) {
+      await serveGenerated(req, res);
+      return;
+    }
     await serveStatic(req, res);
   } catch (error) {
     sendJson(res, 500, { error: error.message || 'Unexpected server error.' });
@@ -619,7 +610,6 @@ server.listen(appPort, '127.0.0.1', () => {
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
-    for (const preview of activePreviews.values()) preview.child.kill('SIGTERM');
     server.close();
     process.exit(0);
   });

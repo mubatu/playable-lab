@@ -20,5 +20,5 @@ Create generates a local project under `my-playables/<playable-name>/`, injects 
 
 Use `My Playables` to see projects generated under `my-playables`.
 
-- `Preview` starts a temporary local dev server for the selected playable and opens it in a new tab.
-- `Build` opens a modal populated from that playable's `build.json`, lets you choose supported ad networks, and runs one build per selected network.
+- `Preview` runs a `preview` network build for the selected playable and opens the generated HTML in a new tab.
+- `Build` opens a modal populated from that playable's `build.json`, saves edited build parameters back to `build.json`, lets you choose supported ad networks, and runs one build per selected network.

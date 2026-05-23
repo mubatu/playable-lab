@@ -530,6 +530,7 @@ h2 {
 
 .primary-button,
 .secondary-button,
+.build-button,
 .ghost-button {
   min-height: 42px;
   border-radius: 6px;
@@ -546,6 +547,11 @@ h2 {
 .secondary-button {
   background: #e2ddd3;
   color: #817767;
+}
+
+.build-button {
+  background: var(--coral);
+  color: #fff;
 }
 
 .ghost-button {
