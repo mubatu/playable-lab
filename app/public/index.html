@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Playable Lab</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Playable Lab</p>
+          <h1>Create a playable from a source kit.</h1>
+        </div>
+        <div class="status" id="status">Ready</div>
+      </header>
+
+      <section class="mode-grid" aria-label="Creation modes">
+        <button class="mode-card active" data-mode="template">
+          <span>Template</span>
+          <small>Start from a ready playable.</small>
+        </button>
+        <button class="mode-card disabled" data-mode="video" disabled>
+          <span>Video</span>
+          <small>Coming later.</small>
+        </button>
+        <button class="mode-card disabled" data-mode="custom" disabled>
+          <span>Custom</span>
+          <small>Coming later.</small>
+        </button>
+      </section>
+
+      <section class="workspace" id="templateWorkspace">
+        <aside class="template-list">
+          <div class="section-title">Templates</div>
+          <div id="templateList" class="template-buttons"></div>
+        </aside>
+
+        <form class="config-panel" id="configForm">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Template</p>
+              <h2 id="templateName">Catcher</h2>
+            </div>
+            <button class="ghost-button" type="button" id="resetButton">Reset</button>
+          </div>
+
+          <div class="form-section">
+            <div class="section-title">Assets</div>
+            <div id="assetFields" class="field-grid"></div>
+          </div>
+
+          <div class="form-section">
+            <div class="section-title">Config</div>
+            <div id="configFields" class="field-grid"></div>
+          </div>
+
+          <details class="advanced">
+            <summary>Advanced</summary>
+            <div id="advancedFields" class="field-grid"></div>
+          </details>
+
+          <div class="actions">
+            <button class="primary-button" type="submit" id="previewButton">Preview</button>
+            <button class="secondary-button" type="button" disabled>Build</button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script src="/client.js" type="module"></script>
+  </body>
+</html>

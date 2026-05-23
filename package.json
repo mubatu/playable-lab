@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "dev": "node app/server.mjs"
+  },
   "dependencies": {
     "@smoud/playable-sdk": "^1.1.1",
     "three": "^0.184.0"

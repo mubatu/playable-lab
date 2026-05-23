@@ -1,0 +1,116 @@
+{
+  "id": "catcher",
+  "name": "Catcher",
+  "description": "Catch targets, avoid traps, and finish on a branded end screen.",
+  "entry": "src/index.html",
+  "assets": [
+    {
+      "id": "endBackground",
+      "label": "End Background",
+      "accept": "image/png",
+      "required": true,
+      "multiple": false,
+      "path": "src/assets/end-background.png"
+    },
+    {
+      "id": "targets",
+      "label": "Targets",
+      "accept": "image/png",
+      "required": true,
+      "multiple": true,
+      "min": 1,
+      "directory": "src/assets",
+      "filePattern": "target-{index}.png"
+    }
+  ],
+  "config": [
+    {
+      "path": "gameplay.durationSeconds",
+      "label": "Duration",
+      "type": "number",
+      "default": 30,
+      "min": 5,
+      "max": 90,
+      "step": 1
+    },
+    {
+      "path": "gameplay.targetScore",
+      "label": "Target Score",
+      "type": "number",
+      "default": 10,
+      "min": 1,
+      "max": 50,
+      "step": 1
+    },
+    {
+      "path": "gameplay.trapChance",
+      "label": "Trap Chance",
+      "type": "number",
+      "default": 0.28,
+      "min": 0,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "path": "gameplay.spawnIntervalMs",
+      "label": "Spawn Interval",
+      "type": "number",
+      "default": 360,
+      "min": 100,
+      "max": 2000,
+      "step": 10,
+      "advanced": true
+    },
+    {
+      "path": "gameplay.minSpawnIntervalMs",
+      "label": "Minimum Spawn Interval",
+      "type": "number",
+      "default": 120,
+      "min": 50,
+      "max": 1000,
+      "step": 10,
+      "advanced": true
+    },
+    {
+      "path": "fallingItem.size",
+      "label": "Item Size",
+      "type": "number",
+      "default": 150,
+      "min": 64,
+      "max": 320,
+      "step": 1
+    },
+    {
+      "path": "fallingItem.minSpeed",
+      "label": "Minimum Fall Speed",
+      "type": "number",
+      "default": 1600,
+      "min": 400,
+      "max": 3200,
+      "step": 25,
+      "advanced": true
+    },
+    {
+      "path": "fallingItem.maxSpeed",
+      "label": "Maximum Fall Speed",
+      "type": "number",
+      "default": 1800,
+      "min": 400,
+      "max": 3600,
+      "step": 25,
+      "advanced": true
+    },
+    {
+      "path": "ui.endButton.text",
+      "label": "End Button Text",
+      "type": "string",
+      "default": "EXPLORE"
+    },
+    {
+      "path": "ui.endButton.backgroundColor",
+      "label": "End Button Color",
+      "type": "color",
+      "default": "#f04f23"
+    }
+  ]
+}
