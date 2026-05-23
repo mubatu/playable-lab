@@ -92,6 +92,36 @@ export const GAME_CONFIG = {
   ui: {
     // When remaining time is at or below this value, the timer HUD switches to warning color.
     lowTimeWarningSeconds: 5,
+    hud: {
+      // Top offset from the safe-area top in CSS pixels.
+      top: 80,
+      // HUD width as a percentage of viewport width.
+      widthVw: 84,
+      // Maximum HUD width in CSS pixels.
+      maxWidth: 300,
+      // Gap between timer and progress bar in CSS pixels.
+      gap: 6,
+      // Timer text size in CSS pixels.
+      timeFontSize: 36,
+      // Timer text color.
+      timeColor: '#ffffff',
+      // Timer warning color when time is low.
+      timeWarningColor: '#ffe17a',
+      // Progress bar height in CSS pixels.
+      progressHeight: 35,
+      // Progress bar border width in CSS pixels.
+      progressBorderWidth: 3,
+      // Progress bar border color.
+      progressBorderColor: 'rgba(23, 111, 135, 0.82)',
+      // Progress bar background color.
+      progressBackgroundColor: '#207e95',
+      // Progress bar fill color.
+      progressFillColor: '#57b8cf',
+      // Progress label text size in CSS pixels.
+      progressFontSize: 28,
+      // Progress label text color.
+      progressTextColor: '#ffffff'
+    },
     endButton: {
       // Text shown on the end screen CTA button.
       text: 'EXPLORE',

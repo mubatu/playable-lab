@@ -34,34 +34,70 @@ body {
 
 .catcher-hud {
   position: absolute;
-  top: max(14px, env(safe-area-inset-top));
-  left: 18px;
-  right: 18px;
+  top: max(var(--hud-top), env(safe-area-inset-top));
+  left: 50%;
   z-index: 2;
   display: flex;
+  width: min(var(--hud-width-vw), var(--hud-max-width));
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  gap: var(--hud-gap);
   pointer-events: none;
+  transform: translateX(-50%);
 }
 
-.catcher-hud__pill {
-  min-width: 116px;
-  padding: 10px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  border-radius: 8px;
-  background: rgba(7, 24, 43, 0.58);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
-  font-size: 17px;
-  font-weight: 800;
+.catcher-hud__time {
+  color: var(--hud-time-color);
+  font-size: var(--hud-time-font-size);
+  font-weight: 900;
   line-height: 1;
   text-align: center;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(8px);
+  text-shadow:
+    0 4px 0 rgba(255, 255, 255, 0.2),
+    0 5px 16px rgba(0, 0, 0, 0.16);
 }
 
-.catcher-hud__pill--warning {
-  color: #ffe17a;
+.catcher-hud__time--warning {
+  color: var(--hud-time-warning-color);
+}
+
+.catcher-hud__progress {
+  position: relative;
+  width: 100%;
+  height: var(--hud-progress-height);
+  overflow: hidden;
+  border: var(--hud-progress-border-width) solid var(--hud-progress-border-color);
+  border-radius: 999px;
+  background: var(--hud-progress-background-color);
+  box-shadow:
+    inset 0 3px 7px rgba(0, 0, 0, 0.22),
+    0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.catcher-hud__progress-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0%;
+  border-radius: 999px 0 0 999px;
+  background: var(--hud-progress-fill-color);
+  box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.22);
+  transition: width 180ms ease-out;
+}
+
+.catcher-hud__progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--hud-progress-text-color);
+  font-size: var(--hud-progress-font-size);
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.16);
 }
 
 .catcher-end {
