@@ -194,7 +194,7 @@ export class Game {
       return;
     }
 
-    this.state.score -= 1;
+    this.state.score = Math.max(0, this.state.score - 1);
     this.showCatchFeedback('trap');
     this.callbacks.onCatchTrap();
   }
