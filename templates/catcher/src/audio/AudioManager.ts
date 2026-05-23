@@ -13,25 +13,32 @@ export class AudioManager {
   private effectCursor = 0;
 
   private unlocked = false;
+  private effectsUnlocked = false;
   private mutedByPause = false;
   private networkVolume = 1;
 
   constructor() {
     this.soundtrack.loop = true;
     this.soundtrack.preload = 'auto';
+    this.soundtrack.autoplay = true;
     this.applyVolumes();
   }
 
   unlock(): void {
-    if (this.unlocked) return;
     this.unlocked = true;
     this.unlockEffects();
-    this.playSoundtrack();
+    void this.startSoundtrack();
   }
 
-  startSoundtrack(): void {
-    if (this.mutedByPause || this.networkVolume <= 0) return;
-    this.soundtrack.play().catch(() => undefined);
+  async startSoundtrack(): Promise<boolean> {
+    if (this.mutedByPause || this.networkVolume <= 0) return false;
+
+    try {
+      await this.soundtrack.play();
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   playEffect(name: EffectName): void {
@@ -54,7 +61,7 @@ export class AudioManager {
 
   resume(): void {
     this.mutedByPause = false;
-    this.playSoundtrack();
+    void this.startSoundtrack();
   }
 
   stop(): void {
@@ -67,9 +74,8 @@ export class AudioManager {
     this.applyVolumes();
   }
 
-  private playSoundtrack(): void {
-    if (!this.unlocked || this.mutedByPause || this.networkVolume <= 0) return;
-    this.startSoundtrack();
+  isSoundtrackPlaying(): boolean {
+    return !this.soundtrack.paused && !this.soundtrack.ended;
   }
 
   private applyVolumes(): void {
@@ -93,6 +99,9 @@ export class AudioManager {
   }
 
   private unlockEffects(): void {
+    if (this.effectsUnlocked) return;
+    this.effectsUnlocked = true;
+
     for (const name of EFFECT_NAMES) {
       const pool = this.effects[name];
 
