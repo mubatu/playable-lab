@@ -5,6 +5,8 @@ const state = {
   selectedTemplate: null,
   selectedPlayable: null,
   buildOptions: null,
+  builds: [],
+  buildsOutputDir: null,
   configValues: {}
 };
 
@@ -122,10 +124,24 @@ function renderPlayableDetail() {
       <button class="primary-button" type="button" id="previewPlayableButton">Preview</button>
       <button class="build-button" type="button" id="buildPlayableButton">Build</button>
     </div>
+    <section class="builds-section">
+      <div class="builds-header">
+        <div>
+          <p class="eyebrow">Builds</p>
+          <h3>Build Artifacts</h3>
+        </div>
+        <button class="ghost-button compact-button" type="button" id="refreshBuildsButton">Refresh</button>
+      </div>
+      <div class="builds-list" id="buildsList">
+        <p class="muted">Loading builds...</p>
+      </div>
+    </section>
   `;
 
   document.querySelector('#previewPlayableButton').addEventListener('click', previewSelectedPlayable);
   document.querySelector('#buildPlayableButton').addEventListener('click', openBuildDialog);
+  document.querySelector('#refreshBuildsButton').addEventListener('click', () => loadPlayableBuilds(playable.slug));
+  loadPlayableBuilds(playable.slug);
 }
 
 function selectPlayable(slug) {
@@ -137,6 +153,13 @@ function selectPlayable(slug) {
 function formatDate(value) {
   if (!value) return 'Unknown date';
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+}
+
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes)) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function titleize(value) {
@@ -407,8 +430,101 @@ async function previewSelectedPlayable() {
     } else {
       setStatus(`Preview ready: ${body.preview.url}`);
     }
+    await loadPlayableBuilds(playable.slug);
   } catch (error) {
     if (previewWindow) previewWindow.close();
+    setStatus(error.message);
+  }
+}
+
+async function loadPlayableBuilds(slug) {
+  const buildsList = document.querySelector('#buildsList');
+  if (!buildsList) return;
+
+  buildsList.innerHTML = '<p class="muted">Loading builds...</p>';
+
+  try {
+    const response = await fetch(`/api/playables/${slug}/builds`);
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error || 'Could not load builds.');
+
+    state.builds = body.builds || [];
+    state.buildsOutputDir = body.outputDir;
+    renderBuildsList();
+  } catch (error) {
+    buildsList.innerHTML = `<p class="muted">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+function renderBuildsList() {
+  const buildsList = document.querySelector('#buildsList');
+  if (!buildsList) return;
+
+  if (state.builds.length === 0) {
+    buildsList.innerHTML = `<p class="muted">No builds found in ${escapeHtml(state.buildsOutputDir || 'builds')}.</p>`;
+    return;
+  }
+
+  buildsList.replaceChildren();
+
+  for (const build of state.builds) {
+    const row = document.createElement('div');
+    row.className = 'build-row';
+
+    const info = document.createElement('div');
+    info.className = 'build-info';
+    info.innerHTML = `
+      <strong>${escapeHtml(build.name)}</strong>
+      <span>${escapeHtml(build.path)} · ${formatBytes(build.size)} · ${formatDate(build.updatedAt)}</span>
+    `;
+
+    const actions = document.createElement('div');
+    actions.className = 'build-row-actions';
+
+    if (build.canOpen && build.url) {
+      const openButton = document.createElement('button');
+      openButton.className = 'ghost-button compact-button';
+      openButton.type = 'button';
+      openButton.textContent = 'Open';
+      openButton.addEventListener('click', () => {
+        window.open(new URL(build.url, window.location.origin).href, '_blank', 'noopener,noreferrer');
+      });
+      actions.append(openButton);
+    }
+
+    const deleteButton = document.createElement('button');
+    deleteButton.className = 'danger-button compact-button';
+    deleteButton.type = 'button';
+    deleteButton.textContent = 'Delete';
+    deleteButton.addEventListener('click', () => deleteBuild(build.path));
+    actions.append(deleteButton);
+
+    row.append(info, actions);
+    buildsList.append(row);
+  }
+}
+
+async function deleteBuild(path) {
+  const playable = state.selectedPlayable;
+  if (!playable) return;
+  if (!confirm(`Delete ${path}?`)) return;
+
+  setStatus('Deleting build');
+
+  try {
+    const response = await fetch(`/api/playables/${playable.slug}/builds`, {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ path })
+    });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error || 'Could not delete build.');
+
+    state.builds = body.builds || [];
+    state.buildsOutputDir = body.outputDir;
+    renderBuildsList();
+    setStatus('Build deleted');
+  } catch (error) {
     setStatus(error.message);
   }
 }
@@ -532,12 +648,14 @@ async function runBuild(event) {
     if (!response.ok && body.build) {
       elements.buildLog.textContent = formatBuildResults(body.build);
       setStatus('Build failed');
+      await loadPlayableBuilds(playable.slug);
       return;
     }
     if (!response.ok) throw new Error(body.error || 'Build failed.');
 
     elements.buildLog.textContent = formatBuildResults(body.build);
     setStatus(body.build.ok ? 'Build complete' : 'Build failed');
+    await loadPlayableBuilds(playable.slug);
   } catch (error) {
     elements.buildLog.textContent = error.message;
     setStatus(error.message);

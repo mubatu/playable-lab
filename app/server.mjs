@@ -25,7 +25,8 @@ const contentTypes = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
-  '.svg': 'image/svg+xml'
+  '.svg': 'image/svg+xml',
+  '.zip': 'application/zip'
 };
 
 function sendJson(res, statusCode, body) {
@@ -169,6 +170,77 @@ async function getBuildConfig(slug) {
     languages: allowedLanguages,
     orientations: allowedOrientations
   };
+}
+
+async function getBuildOutputDir(playable) {
+  const buildConfig = JSON.parse(await readFile(join(playable.path, 'build.json'), 'utf8'));
+  const outDir = typeof buildConfig.outDir === 'string' && buildConfig.outDir.trim() ? buildConfig.outDir : 'dist';
+  return safeJoin(playable.path, outDir);
+}
+
+async function listPlayableBuilds(slug) {
+  const playable = await getPlayable(slug);
+  const outputDir = await getBuildOutputDir(playable);
+
+  if (!(await pathExists(outputDir))) {
+    return { builds: [], outputDir: relative(playable.path, outputDir) };
+  }
+
+  const builds = [];
+
+  async function walk(directory) {
+    const entries = await readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+        continue;
+      }
+
+      if (!entry.isFile()) continue;
+
+      const fileStats = await stat(fullPath);
+      const path = relative(playable.path, fullPath);
+      const extension = extname(entry.name).toLowerCase();
+
+      builds.push({
+        name: entry.name,
+        path,
+        extension,
+        size: fileStats.size,
+        updatedAt: fileStats.mtime.toISOString(),
+        canOpen: extension === '.html',
+        url: extension === '.html' ? `/generated/${encodeURIComponent(slug)}/${path.split('/').map(encodeURIComponent).join('/')}` : null
+      });
+    }
+  }
+
+  await walk(outputDir);
+  builds.sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+
+  return {
+    builds,
+    outputDir: relative(playable.path, outputDir)
+  };
+}
+
+async function deletePlayableBuild(slug, buildPath) {
+  if (typeof buildPath !== 'string' || !buildPath) throw new Error('Build path is required.');
+
+  const playable = await getPlayable(slug);
+  const outputDir = await getBuildOutputDir(playable);
+  const filePath = safeJoin(playable.path, buildPath);
+  const relToOutput = relative(outputDir, filePath);
+
+  if (relToOutput.startsWith('..') || normalize(relToOutput).startsWith('..')) {
+    throw new Error('Build file must be inside the build output folder.');
+  }
+
+  const fileStats = await stat(filePath);
+  if (!fileStats.isFile()) throw new Error('Only build files can be deleted.');
+
+  await rm(filePath);
+  return listPlayableBuilds(slug);
 }
 
 function findConfigField(manifest, path) {
@@ -561,6 +633,20 @@ async function handleApi(req, res) {
   if (req.method === 'GET' && buildOptionsMatch) {
     const options = await getBuildConfig(buildOptionsMatch[1]);
     sendJson(res, 200, options);
+    return;
+  }
+
+  const buildsMatch = requestUrl.pathname.match(/^\/api\/playables\/([^/]+)\/builds$/);
+  if (req.method === 'GET' && buildsMatch) {
+    const builds = await listPlayableBuilds(buildsMatch[1]);
+    sendJson(res, 200, builds);
+    return;
+  }
+
+  if (req.method === 'DELETE' && buildsMatch) {
+    const payload = await readRequestJson(req);
+    const builds = await deletePlayableBuild(buildsMatch[1], payload.path);
+    sendJson(res, 200, builds);
     return;
   }
 

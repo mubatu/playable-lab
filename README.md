@@ -22,3 +22,4 @@ Use `My Playables` to see projects generated under `my-playables`.
 
 - `Preview` runs a `preview` network build for the selected playable and opens the generated HTML in a new tab.
 - `Build` opens a modal populated from that playable's `build.json`, saves edited build parameters back to `build.json`, lets you choose supported ad networks, and runs one build per selected network.
+- The selected playable also shows files generated under its build output folder. HTML builds can be opened in a new tab, and any listed build file can be deleted.
