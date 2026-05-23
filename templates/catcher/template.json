@@ -5,12 +5,44 @@
   "entry": "src/index.html",
   "assets": [
     {
+      "id": "background",
+      "label": "Background",
+      "accept": "image/png",
+      "required": false,
+      "multiple": false,
+      "path": "src/assets/background.png"
+    },
+    {
       "id": "endBackground",
       "label": "End Background",
       "accept": "image/png",
       "required": true,
       "multiple": false,
       "path": "src/assets/end-background.png"
+    },
+    {
+      "id": "basket",
+      "label": "Basket",
+      "accept": "image/png",
+      "required": false,
+      "multiple": false,
+      "path": "src/assets/basket.png"
+    },
+    {
+      "id": "bomb",
+      "label": "Bomb",
+      "accept": "image/png",
+      "required": false,
+      "multiple": false,
+      "path": "src/assets/bomb.png"
+    },
+    {
+      "id": "hand",
+      "label": "Tutorial Hand",
+      "accept": "image/png",
+      "required": false,
+      "multiple": false,
+      "path": "src/assets/hand.png"
     },
     {
       "id": "targets",
@@ -21,6 +53,30 @@
       "min": 1,
       "directory": "src/assets",
       "filePattern": "target-{index}.png"
+    },
+    {
+      "id": "soundtrack",
+      "label": "Soundtrack",
+      "accept": "audio/mpeg,.mp3",
+      "required": false,
+      "multiple": false,
+      "path": "src/assets/soundtrack.mp3"
+    },
+    {
+      "id": "catchTarget",
+      "label": "Catch Target Sound",
+      "accept": "audio/mpeg,.mp3",
+      "required": false,
+      "multiple": false,
+      "path": "src/assets/catch-target.mp3"
+    },
+    {
+      "id": "catchBomb",
+      "label": "Catch Bomb Sound",
+      "accept": "audio/mpeg,.mp3",
+      "required": false,
+      "multiple": false,
+      "path": "src/assets/catch-bomb.mp3"
     }
   ],
   "config": [

@@ -99,7 +99,62 @@ async function getManifest(templateId) {
   if (manifest.id !== templateId) {
     throw new Error(`Template manifest id mismatch for ${templateId}.`);
   }
-  return manifest;
+  return hydrateTemplateManifest(templateId, manifest);
+}
+
+async function hydrateTemplateManifest(templateId, manifest) {
+  const configPath = safeJoin(templatesDir, join(templateId, 'src', 'config.ts'));
+  const config = parseGameConfig(await readFile(configPath, 'utf8'));
+  const existingPaths = new Set((manifest.config || []).map((field) => field.path));
+  const inferredFields = inferConfigFields(config).filter((field) => !existingPaths.has(field.path));
+
+  return {
+    ...manifest,
+    config: [...(manifest.config || []), ...inferredFields]
+  };
+}
+
+function inferConfigFields(config) {
+  const fields = [];
+
+  function walk(value, path) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      for (const [key, childValue] of Object.entries(value)) {
+        walk(childValue, [...path, key]);
+      }
+      return;
+    }
+
+    fields.push(inferConfigField(path, value));
+  }
+
+  walk(config, []);
+  return fields;
+}
+
+function inferConfigField(pathParts, value) {
+  const path = pathParts.join('.');
+  const valueType = typeof value;
+  let type = 'string';
+
+  if (valueType === 'number') type = 'number';
+  else if (valueType === 'boolean') type = 'boolean';
+  else if (valueType === 'string' && /^#[0-9a-fA-F]{6}$/.test(value)) type = 'color';
+
+  return {
+    path,
+    label: pathParts.map(labelize).join(' '),
+    type,
+    default: value,
+    advanced: true
+  };
+}
+
+function labelize(value) {
+  return value
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 async function listTemplates() {

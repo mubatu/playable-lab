@@ -240,6 +240,11 @@ function renderAssetField(asset) {
     hint.className = 'hint';
     hint.textContent = `Minimum ${asset.min || 1}`;
     wrapper.append(hint);
+  } else if (!asset.required) {
+    const hint = document.createElement('span');
+    hint.className = 'hint';
+    hint.textContent = 'Default asset is selected. Upload a file to replace it.';
+    wrapper.append(hint);
   }
 
   return wrapper;
@@ -249,7 +254,21 @@ function renderConfigField(field) {
   const wrapper = makeFieldWrapper(field);
   const value = state.configValues[field.path] ?? field.default;
 
-  if (field.type === 'number') {
+  if (field.type === 'boolean') {
+    const input = document.createElement('input');
+    input.id = field.path;
+    input.name = field.path;
+    input.type = 'checkbox';
+    input.checked = Boolean(value);
+    wrapper.classList.add('checkbox-field');
+    input.addEventListener('input', () => {
+      state.configValues[field.path] = input.checked;
+    });
+    wrapper.append(input);
+    return wrapper;
+  }
+
+  if (field.type === 'number' && Number.isFinite(field.min) && Number.isFinite(field.max)) {
     const row = document.createElement('div');
     row.className = 'number-row';
 
@@ -286,10 +305,13 @@ function renderConfigField(field) {
   const input = document.createElement('input');
   input.id = field.path;
   input.name = field.path;
-  input.type = field.type === 'color' ? 'color' : 'text';
+  input.type = field.type === 'color' ? 'color' : field.type === 'number' ? 'number' : 'text';
+  if (field.type === 'number') {
+    input.step = field.step ?? 'any';
+  }
   input.value = value;
   input.addEventListener('input', () => {
-    state.configValues[field.path] = input.value;
+    state.configValues[field.path] = field.type === 'number' ? Number(input.value) : input.value;
   });
   wrapper.append(input);
 
@@ -369,7 +391,9 @@ function collectConfig(template) {
   for (const field of template.config || []) {
     const input = elements.configForm.elements[field.path];
     if (!input) continue;
-    config[field.path] = field.type === 'number' ? Number(input.value) : input.value;
+    if (field.type === 'number') config[field.path] = Number(input.value);
+    else if (field.type === 'boolean') config[field.path] = input.checked;
+    else config[field.path] = input.value;
   }
 
   return config;
