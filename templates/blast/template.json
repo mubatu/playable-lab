@@ -151,7 +151,7 @@
       "path": "grid.fallSpeed",
       "label": "Object Fall Speed",
       "type": "number",
-      "default": 1500,
+      "default": 720,
       "min": 500,
       "max": 8000,
       "step": 100,
