@@ -183,6 +183,12 @@ function networkLabel(value) {
   return labels[value] || titleize(value);
 }
 
+function buildSelectOptions(key) {
+  if (key === 'language') return state.buildOptions?.languages || [];
+  if (key === 'orientation') return state.buildOptions?.orientations || [];
+  return null;
+}
+
 function makeFieldWrapper(field) {
   const wrapper = document.createElement('div');
   wrapper.className = 'field';
@@ -419,11 +425,20 @@ function renderBuildConfigFields(config) {
     label.textContent = titleize(key);
     wrapper.append(label);
 
-    const input = document.createElement('input');
+    const selectOptions = buildSelectOptions(key);
+    const input = document.createElement(selectOptions ? 'select' : 'input');
     input.id = `build-${key}`;
     input.name = key;
 
-    if (typeof value === 'boolean') {
+    if (selectOptions) {
+      for (const optionValue of selectOptions) {
+        const option = document.createElement('option');
+        option.value = optionValue;
+        option.textContent = optionValue === 'auto' ? 'Auto' : titleize(optionValue);
+        option.selected = optionValue === value;
+        input.append(option);
+      }
+    } else if (typeof value === 'boolean') {
       input.type = 'checkbox';
       input.checked = value;
       wrapper.classList.add('checkbox-field');
@@ -481,7 +496,7 @@ async function openBuildDialog() {
 function collectBuildConfig() {
   const config = {};
 
-  for (const input of elements.buildConfigFields.querySelectorAll('input')) {
+  for (const input of elements.buildConfigFields.querySelectorAll('input, select')) {
     if (input.type === 'checkbox') config[input.name] = input.checked;
     else if (input.type === 'number') config[input.name] = Number(input.value);
     else config[input.name] = input.value;

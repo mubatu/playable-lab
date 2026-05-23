@@ -7,7 +7,11 @@ import { createRequire } from 'node:module';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const require = createRequire(import.meta.url);
-const { allowedAdNetworks } = require('@smoud/playable-scripts/core/utils/parseArgvOptions.js');
+const {
+  allowedAdNetworks,
+  allowedLanguages,
+  allowedOrientations
+} = require('@smoud/playable-scripts/core/utils/parseArgvOptions.js');
 const rootDir = resolve(__dirname, '..');
 const publicDir = join(__dirname, 'public');
 const templatesDir = join(rootDir, 'templates');
@@ -161,7 +165,9 @@ async function getBuildConfig(slug) {
   return {
     playable,
     buildConfig,
-    networks: allowedAdNetworks.filter((network) => network !== 'preview')
+    networks: allowedAdNetworks.filter((network) => network !== 'preview'),
+    languages: allowedLanguages,
+    orientations: allowedOrientations
   };
 }
 

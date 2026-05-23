@@ -322,7 +322,8 @@ h2 {
 
 .field input[type="file"],
 .field input[type="text"],
-.field input[type="number"] {
+.field input[type="number"],
+.field select {
   width: 100%;
   min-height: 42px;
   border: 1px solid #c8c0b2;
@@ -330,6 +331,10 @@ h2 {
   padding: 9px 10px;
   background: #fffdfa;
   color: var(--ink);
+}
+
+.field select {
+  appearance: auto;
 }
 
 .field input[type="color"] {
