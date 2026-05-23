@@ -25,6 +25,8 @@ export class CatcherApp {
   private game: Game | null = null;
   private input: PointerInput | null = null;
   private hasFinished = false;
+  private hasAudioInteraction = false;
+  private hasStartedGame = false;
 
   constructor(root: HTMLElement, options: CatcherAppOptions) {
     this.root = root;
@@ -45,6 +47,8 @@ export class CatcherApp {
     this.endScreen = new EndScreen(this.shell, {
       onInstall: this.options.onInstall
     });
+
+    this.addAudioUnlockListeners();
   }
 
   async boot(): Promise<void> {
@@ -61,12 +65,12 @@ export class CatcherApp {
       canvas: this.canvas,
       getLayout: () => this.game!.getLayout(),
       onMove: (x) => this.game?.setBasketTarget(x),
-      onFirstInteraction: () => this.audio.unlock()
+      onFirstInteraction: this.handleFirstAudioInteraction
     });
 
     this.resize(this.options.width, this.options.height);
     this.game.markReady();
-    this.game.start();
+    this.startGame();
     this.options.onReady();
   }
 
@@ -94,6 +98,7 @@ export class CatcherApp {
 
   destroy(): void {
     this.input?.destroy();
+    this.removeAudioUnlockListeners();
     this.audio.stop();
     this.root.textContent = '';
   }
@@ -105,9 +110,39 @@ export class CatcherApp {
   private handleGameEnd = (state: GameState): void => {
     if (this.hasFinished) return;
     this.hasFinished = true;
-    this.audio.stop();
+    // this.audio.stop();
     this.hud.hide();
-    this.endScreen.show(state.score, state.targetScore);
+    this.endScreen.show();
     this.options.onFinish();
   };
+
+  private handleFirstAudioInteraction = (): void => {
+    if (this.hasAudioInteraction) return;
+    this.hasAudioInteraction = true;
+    this.removeAudioUnlockListeners();
+    this.audio.unlock();
+    this.startGame();
+  };
+
+  private startGame(): void {
+    if (!this.hasAudioInteraction || !this.game || this.hasStartedGame || this.hasFinished) return;
+    this.hasStartedGame = true;
+    this.game.start();
+  }
+
+  private addAudioUnlockListeners(): void {
+    document.addEventListener('pointerdown', this.handleFirstAudioInteraction, { capture: true, passive: true });
+    document.addEventListener('touchstart', this.handleFirstAudioInteraction, { capture: true, passive: true });
+    document.addEventListener('mousedown', this.handleFirstAudioInteraction, { capture: true, passive: true });
+    document.addEventListener('click', this.handleFirstAudioInteraction, { capture: true, passive: true });
+    document.addEventListener('keydown', this.handleFirstAudioInteraction, { capture: true });
+  }
+
+  private removeAudioUnlockListeners(): void {
+    document.removeEventListener('pointerdown', this.handleFirstAudioInteraction, { capture: true });
+    document.removeEventListener('touchstart', this.handleFirstAudioInteraction, { capture: true });
+    document.removeEventListener('mousedown', this.handleFirstAudioInteraction, { capture: true });
+    document.removeEventListener('click', this.handleFirstAudioInteraction, { capture: true });
+    document.removeEventListener('keydown', this.handleFirstAudioInteraction, { capture: true });
+  }
 }

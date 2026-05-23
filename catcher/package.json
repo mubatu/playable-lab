@@ -3,10 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "playable-scripts dev --orientation portrait",
-    "build": "playable-scripts build preview --orientation portrait",
-    "build:google": "playable-scripts build google --orientation portrait",
-    "build:applovin": "playable-scripts build applovin --orientation portrait"
+    "dev": "playable-scripts dev",
+    "build": "playable-scripts build"
   },
   "dependencies": {
     "@smoud/playable-sdk": "^1.1.1"
