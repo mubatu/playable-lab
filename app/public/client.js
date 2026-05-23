@@ -4,6 +4,7 @@ const state = {
   playables: [],
   selectedTemplate: null,
   selectedPlayable: null,
+  buildOptions: null,
   configValues: {}
 };
 
@@ -27,7 +28,16 @@ const elements = {
   configForm: document.querySelector('#configForm'),
   resetButton: document.querySelector('#resetButton'),
   createButton: document.querySelector('#createButton'),
-  refreshPlayablesButton: document.querySelector('#refreshPlayablesButton')
+  refreshPlayablesButton: document.querySelector('#refreshPlayablesButton'),
+  buildDialog: document.querySelector('#buildDialog'),
+  buildForm: document.querySelector('#buildForm'),
+  buildPlayableName: document.querySelector('#buildPlayableName'),
+  buildConfigFields: document.querySelector('#buildConfigFields'),
+  networkFields: document.querySelector('#networkFields'),
+  buildLog: document.querySelector('#buildLog'),
+  runBuildButton: document.querySelector('#runBuildButton'),
+  cancelBuildButton: document.querySelector('#cancelBuildButton'),
+  closeBuildDialogButton: document.querySelector('#closeBuildDialogButton')
 };
 
 function setStatus(message) {
@@ -57,7 +67,7 @@ function renderTemplates() {
     const button = document.createElement('button');
     button.className = `template-button${state.selectedTemplate?.id === template.id ? ' active' : ''}`;
     button.type = 'button';
-    button.innerHTML = `<span>${template.name}</span><small>${template.description || ''}</small>`;
+    button.innerHTML = `<span>${escapeHtml(template.name)}</span><small>${escapeHtml(template.description || '')}</small>`;
     button.addEventListener('click', () => selectTemplate(template.id));
     elements.templateList.append(button);
   }
@@ -80,8 +90,8 @@ function renderPlayables() {
     button.className = `project-button${state.selectedPlayable?.slug === playable.slug ? ' active' : ''}`;
     button.type = 'button';
     button.innerHTML = `
-      <span>${playable.name}</span>
-      <small>${playable.templateName || playable.templateId} · ${formatDate(playable.createdAt)}</small>
+      <span>${escapeHtml(playable.name)}</span>
+      <small>${escapeHtml(playable.templateName || playable.templateId)} · ${formatDate(playable.createdAt)}</small>
     `;
     button.addEventListener('click', () => selectPlayable(playable.slug));
     elements.playablesList.append(button);
@@ -102,17 +112,20 @@ function renderPlayableDetail() {
 
   elements.playableDetail.innerHTML = `
     <p class="eyebrow">Selected Playable</p>
-    <h2>${playable.name}</h2>
+    <h2>${escapeHtml(playable.name)}</h2>
     <dl class="project-meta">
-      <div><dt>Folder</dt><dd>my-playables/${playable.slug}</dd></div>
-      <div><dt>Template</dt><dd>${playable.templateName || playable.templateId}</dd></div>
+      <div><dt>Folder</dt><dd>my-playables/${escapeHtml(playable.slug)}</dd></div>
+      <div><dt>Template</dt><dd>${escapeHtml(playable.templateName || playable.templateId)}</dd></div>
       <div><dt>Created</dt><dd>${formatDate(playable.createdAt)}</dd></div>
     </dl>
     <div class="project-actions">
-      <button class="primary-button" type="button" disabled>Preview</button>
-      <button class="secondary-button" type="button" disabled>Build</button>
+      <button class="primary-button" type="button" id="previewPlayableButton">Preview</button>
+      <button class="secondary-button" type="button" id="buildPlayableButton">Build</button>
     </div>
   `;
+
+  document.querySelector('#previewPlayableButton').addEventListener('click', previewSelectedPlayable);
+  document.querySelector('#buildPlayableButton').addEventListener('click', openBuildDialog);
 }
 
 function selectPlayable(slug) {
@@ -124,6 +137,50 @@ function selectPlayable(slug) {
 function formatDate(value) {
   if (!value) return 'Unknown date';
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+}
+
+function titleize(value) {
+  return String(value)
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function networkLabel(value) {
+  const labels = {
+    applovin: 'AppLovin',
+    unity: 'Unity Ads',
+    google: 'Google Ads',
+    ironsource: 'ironSource',
+    facebook: 'Facebook',
+    moloco: 'Moloco',
+    adcolony: 'AdColony',
+    mintegral: 'Mintegral',
+    vungle: 'Vungle',
+    tapjoy: 'Tapjoy',
+    snapchat: 'Snapchat',
+    tiktok: 'TikTok',
+    appreciate: 'Appreciate',
+    chartboost: 'Chartboost',
+    pangle: 'Pangle',
+    mytarget: 'MyTarget',
+    liftoff: 'Liftoff',
+    smadex: 'Smadex',
+    adikteev: 'Adikteev',
+    bigabid: 'Bigabid',
+    inmobi: 'inMobi'
+  };
+
+  return labels[value] || titleize(value);
 }
 
 function makeFieldWrapper(field) {
@@ -326,6 +383,163 @@ async function createPlayable(event) {
   }
 }
 
+async function previewSelectedPlayable() {
+  const playable = state.selectedPlayable;
+  if (!playable) return;
+
+  const previewWindow = window.open('', '_blank');
+  setStatus('Starting preview');
+
+  try {
+    const response = await fetch(`/api/playables/${playable.slug}/preview`, { method: 'POST' });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error || 'Preview failed.');
+
+    setStatus('Preview ready');
+    if (previewWindow) {
+      previewWindow.location.href = body.preview.url;
+    } else {
+      setStatus(`Preview ready: ${body.preview.url}`);
+    }
+  } catch (error) {
+    if (previewWindow) previewWindow.close();
+    setStatus(error.message);
+  }
+}
+
+function renderBuildConfigFields(config) {
+  elements.buildConfigFields.replaceChildren();
+
+  for (const [key, value] of Object.entries(config || {})) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'field';
+
+    const label = document.createElement('label');
+    label.htmlFor = `build-${key}`;
+    label.textContent = titleize(key);
+    wrapper.append(label);
+
+    const input = document.createElement('input');
+    input.id = `build-${key}`;
+    input.name = key;
+
+    if (typeof value === 'boolean') {
+      input.type = 'checkbox';
+      input.checked = value;
+      wrapper.classList.add('checkbox-field');
+    } else if (typeof value === 'number') {
+      input.type = 'number';
+      input.value = value;
+    } else {
+      input.type = 'text';
+      input.value = value ?? '';
+    }
+
+    wrapper.append(input);
+    elements.buildConfigFields.append(wrapper);
+  }
+}
+
+function renderNetworkFields(networks) {
+  elements.networkFields.replaceChildren();
+
+  for (const network of networks || []) {
+    const label = document.createElement('label');
+    label.className = 'network-option';
+    label.innerHTML = `
+      <input type="checkbox" name="network" value="${network}" />
+      <span>${networkLabel(network)}</span>
+    `;
+    elements.networkFields.append(label);
+  }
+}
+
+async function openBuildDialog() {
+  const playable = state.selectedPlayable;
+  if (!playable) return;
+
+  setStatus('Loading build options');
+  elements.buildPlayableName.textContent = playable.name;
+  elements.buildLog.hidden = true;
+  elements.buildLog.textContent = '';
+
+  try {
+    const response = await fetch(`/api/playables/${playable.slug}/build-options`);
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error || 'Could not load build options.');
+
+    state.buildOptions = body;
+    renderBuildConfigFields(body.buildConfig);
+    renderNetworkFields(body.networks);
+    elements.buildDialog.showModal();
+    setStatus('Ready');
+  } catch (error) {
+    setStatus(error.message);
+  }
+}
+
+function collectBuildConfig() {
+  const config = {};
+
+  for (const input of elements.buildConfigFields.querySelectorAll('input')) {
+    if (input.type === 'checkbox') config[input.name] = input.checked;
+    else if (input.type === 'number') config[input.name] = Number(input.value);
+    else config[input.name] = input.value;
+  }
+
+  return config;
+}
+
+function collectSelectedNetworks() {
+  return Array.from(elements.networkFields.querySelectorAll('input[name="network"]:checked')).map((input) => input.value);
+}
+
+async function runBuild(event) {
+  event.preventDefault();
+  const playable = state.selectedPlayable;
+  if (!playable) return;
+
+  elements.runBuildButton.disabled = true;
+  elements.buildLog.hidden = false;
+  elements.buildLog.textContent = 'Building...';
+  setStatus('Building');
+
+  try {
+    const response = await fetch(`/api/playables/${playable.slug}/build`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        config: collectBuildConfig(),
+        networks: collectSelectedNetworks()
+      })
+    });
+    const body = await response.json();
+    if (!response.ok && body.build) {
+      elements.buildLog.textContent = formatBuildResults(body.build);
+      setStatus('Build failed');
+      return;
+    }
+    if (!response.ok) throw new Error(body.error || 'Build failed.');
+
+    elements.buildLog.textContent = formatBuildResults(body.build);
+    setStatus(body.build.ok ? 'Build complete' : 'Build failed');
+  } catch (error) {
+    elements.buildLog.textContent = error.message;
+    setStatus(error.message);
+  } finally {
+    elements.runBuildButton.disabled = false;
+  }
+}
+
+function formatBuildResults(build) {
+  return (build.results || [])
+    .map((result) => {
+      const title = `${networkLabel(result.network)}: ${result.code === 0 ? 'success' : 'failed'}`;
+      return result.output ? `${title}\n${result.output}` : title;
+    })
+    .join('\n\n');
+}
+
 async function loadTemplates() {
   const response = await fetch('/api/templates');
   const body = await response.json();
@@ -351,7 +565,10 @@ for (const button of elements.viewButtons) {
 }
 
 elements.configForm.addEventListener('submit', createPlayable);
+elements.buildForm.addEventListener('submit', runBuild);
 elements.refreshPlayablesButton.addEventListener('click', loadPlayables);
+elements.cancelBuildButton.addEventListener('click', () => elements.buildDialog.close());
+elements.closeBuildDialogButton.addEventListener('click', () => elements.buildDialog.close());
 elements.resetButton.addEventListener('click', () => {
   if (!state.selectedTemplate) return;
   elements.configForm.reset();
