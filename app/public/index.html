@@ -9,63 +9,115 @@
   <body>
     <main class="shell">
       <header class="topbar">
-        <div>
-          <p class="eyebrow">Playable Lab</p>
-          <h1>Create a playable from a source kit.</h1>
-        </div>
+        <button class="brand-button" type="button" data-view="home">Playable Lab</button>
+        <nav class="tabs" aria-label="Primary">
+          <button class="tab-button" type="button" data-view="playables">My Playables</button>
+          <button class="tab-button" type="button" data-view="create">Create Playable</button>
+        </nav>
         <div class="status" id="status">Ready</div>
       </header>
 
-      <section class="mode-grid" aria-label="Creation modes">
-        <button class="mode-card active" data-mode="template">
-          <span>Template</span>
-          <small>Start from a ready playable.</small>
-        </button>
-        <button class="mode-card disabled" data-mode="video" disabled>
-          <span>Video</span>
-          <small>Coming later.</small>
-        </button>
-        <button class="mode-card disabled" data-mode="custom" disabled>
-          <span>Custom</span>
-          <small>Coming later.</small>
-        </button>
+      <section class="hero view active" id="homeView">
+        <p class="eyebrow">Playable Lab</p>
+        <h1>Make playable ads from focused source kits.</h1>
+        <p class="hero-copy">
+          Choose a template, upload campaign assets, tune the exposed variables, and generate a saved
+          playable project in your local workspace.
+        </p>
+        <div class="hero-actions">
+          <button class="primary-button" type="button" data-view="create">Create Playable</button>
+          <button class="ghost-button" type="button" data-view="playables">My Playables</button>
+        </div>
       </section>
 
-      <section class="workspace" id="templateWorkspace">
-        <aside class="template-list">
-          <div class="section-title">Templates</div>
-          <div id="templateList" class="template-buttons"></div>
-        </aside>
+      <section class="view" id="playablesView">
+        <div class="view-header">
+          <div>
+            <p class="eyebrow">Workspace</p>
+            <h1>My Playables</h1>
+          </div>
+          <button class="ghost-button" type="button" id="refreshPlayablesButton">Refresh</button>
+        </div>
 
-        <form class="config-panel" id="configForm">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Template</p>
-              <h2 id="templateName">Catcher</h2>
+        <div class="playables-layout">
+          <div class="project-list" id="playablesList"></div>
+          <aside class="project-detail" id="playableDetail">
+            <p class="eyebrow">Selected Playable</p>
+            <h2>No playable selected</h2>
+            <p class="muted">Choose a project to reveal its actions.</p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="createView">
+        <div class="view-header">
+          <div>
+            <p class="eyebrow">Create</p>
+            <h1>Create Playable</h1>
+          </div>
+        </div>
+
+        <section class="mode-grid" aria-label="Creation modes">
+          <button class="mode-card active" data-mode="template">
+            <span>Template</span>
+            <small>Start from a ready playable.</small>
+          </button>
+          <button class="mode-card disabled" data-mode="video" disabled>
+            <span>Video</span>
+            <small>Coming later.</small>
+          </button>
+          <button class="mode-card disabled" data-mode="custom" disabled>
+            <span>Custom</span>
+            <small>Coming later.</small>
+          </button>
+        </section>
+
+        <section class="workspace" id="templateWorkspace">
+          <aside class="template-list">
+            <div class="section-title">Templates</div>
+            <div id="templateList" class="template-buttons"></div>
+          </aside>
+
+          <form class="config-panel" id="configForm">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Template</p>
+                <h2 id="templateName">Catcher</h2>
+              </div>
+              <button class="ghost-button" type="button" id="resetButton">Reset</button>
             </div>
-            <button class="ghost-button" type="button" id="resetButton">Reset</button>
-          </div>
 
-          <div class="form-section">
-            <div class="section-title">Assets</div>
-            <div id="assetFields" class="field-grid"></div>
-          </div>
+            <div class="form-section">
+              <div class="section-title">Playable</div>
+              <div class="field-grid single">
+                <div class="field">
+                  <label for="playableName">Playable Name</label>
+                  <input id="playableName" name="playableName" type="text" required placeholder="Summer Catcher" />
+                  <span class="hint">Generated under my-playables with a safe folder name.</span>
+                </div>
+              </div>
+            </div>
 
-          <div class="form-section">
-            <div class="section-title">Config</div>
-            <div id="configFields" class="field-grid"></div>
-          </div>
+            <div class="form-section">
+              <div class="section-title">Assets</div>
+              <div id="assetFields" class="field-grid"></div>
+            </div>
 
-          <details class="advanced">
-            <summary>Advanced</summary>
-            <div id="advancedFields" class="field-grid"></div>
-          </details>
+            <div class="form-section">
+              <div class="section-title">Config</div>
+              <div id="configFields" class="field-grid"></div>
+            </div>
 
-          <div class="actions">
-            <button class="primary-button" type="submit" id="previewButton">Preview</button>
-            <button class="secondary-button" type="button" disabled>Build</button>
-          </div>
-        </form>
+            <details class="advanced">
+              <summary>Advanced</summary>
+              <div id="advancedFields" class="field-grid"></div>
+            </details>
+
+            <div class="actions">
+              <button class="primary-button" type="submit" id="createButton">Create</button>
+            </div>
+          </form>
+        </section>
       </section>
     </main>
 

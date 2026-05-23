@@ -1,19 +1,13 @@
 import { createServer } from 'node:http';
-import { spawn } from 'node:child_process';
 import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
-import { createWriteStream } from 'node:fs';
 import { extname, join, normalize, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomUUID } from 'node:crypto';
-import { once } from 'node:events';
-import net from 'node:net';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const rootDir = resolve(__dirname, '..');
 const publicDir = join(__dirname, 'public');
 const templatesDir = join(rootDir, 'templates');
-const previewsDir = join(rootDir, '.playable-lab', 'previews');
-const activePreviews = new Map();
+const playablesDir = join(rootDir, 'my-playables');
 
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -71,6 +65,25 @@ function safeJoin(base, target) {
   return resolved;
 }
 
+function slugify(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 72);
+}
+
+async function pathExists(path) {
+  try {
+    await stat(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function getManifest(templateId) {
   const manifestPath = safeJoin(templatesDir, join(templateId, 'template.json'));
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
@@ -94,6 +107,32 @@ async function listTemplates() {
   }
 
   return manifests;
+}
+
+async function listPlayables() {
+  await mkdir(playablesDir, { recursive: true });
+  const entries = await readdir(playablesDir, { withFileTypes: true });
+  const playables = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+
+    const playableDir = safeJoin(playablesDir, entry.name);
+    try {
+      const metadata = JSON.parse(await readFile(join(playableDir, 'playable.json'), 'utf8'));
+      playables.push({ ...metadata, slug: entry.name });
+    } catch {
+      playables.push({
+        name: entry.name,
+        slug: entry.name,
+        templateId: 'unknown',
+        createdAt: null
+      });
+    }
+  }
+
+  playables.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  return playables;
 }
 
 function findConfigField(manifest, path) {
@@ -146,7 +185,7 @@ function serializeConfig(config) {
   return `export const GAME_CONFIG = ${JSON.stringify(config, null, 2)} as const;\n\nexport type GameConfig = typeof GAME_CONFIG;\n`;
 }
 
-async function applyConfig(templateDir, previewDir, manifest, overrides = {}) {
+async function applyConfig(templateDir, outputDir, manifest, overrides = {}) {
   const configPath = join(templateDir, 'src', 'config.ts');
   const config = parseGameConfig(await readFile(configPath, 'utf8'));
 
@@ -156,7 +195,7 @@ async function applyConfig(templateDir, previewDir, manifest, overrides = {}) {
     setPath(config, path, coerceConfigValue(field, rawValue));
   }
 
-  await writeFile(join(previewDir, 'src', 'config.ts'), serializeConfig(config));
+  await writeFile(join(outputDir, 'src', 'config.ts'), serializeConfig(config));
 }
 
 function decodeDataUrl(file) {
@@ -166,17 +205,17 @@ function decodeDataUrl(file) {
   return Buffer.from(file.dataUrl.slice(commaIndex + 1), 'base64');
 }
 
-async function writeAssetFile(previewDir, asset, file, index) {
+async function writeAssetFile(outputDir, asset, file, index) {
   const relativePath = asset.multiple
     ? join(asset.directory, asset.filePattern.replace('{index}', String(index)))
     : asset.path;
-  const outputPath = safeJoin(previewDir, relativePath);
+  const outputPath = safeJoin(outputDir, relativePath);
   await mkdir(resolve(outputPath, '..'), { recursive: true });
   await writeFile(outputPath, decodeDataUrl(file));
   return relativePath;
 }
 
-async function applyAssets(previewDir, manifest, uploads = {}) {
+async function applyAssets(outputDir, manifest, uploads = {}) {
   const written = {};
 
   for (const asset of manifest.assets || []) {
@@ -187,14 +226,14 @@ async function applyAssets(previewDir, manifest, uploads = {}) {
 
     written[asset.id] = [];
     for (let index = 0; index < files.length; index += 1) {
-      written[asset.id].push(await writeAssetFile(previewDir, asset, files[index], index + 1));
+      written[asset.id].push(await writeAssetFile(outputDir, asset, files[index], index + 1));
     }
   }
 
   return written;
 }
 
-async function writeCatcherAssetsModule(previewDir, targetCount) {
+async function writeCatcherAssetsModule(outputDir, targetCount) {
   const targetImports = Array.from({ length: targetCount }, (_, index) => {
     const targetNumber = index + 1;
     return `import target${targetNumber} from './assets/target-${targetNumber}.png';`;
@@ -265,87 +304,52 @@ export async function loadImages(): Promise<LoadedImages> {
 }
 `;
 
-  await writeFile(join(previewDir, 'src', 'assets.ts'), source);
+  await writeFile(join(outputDir, 'src', 'assets.ts'), source);
 }
 
-function findOpenPort(startPort = 4100) {
-  return new Promise((resolvePort, reject) => {
-    const server = net.createServer();
-    server.unref();
-    server.on('error', () => resolvePort(findOpenPort(startPort + 1)));
-    server.listen(startPort, () => {
-      const { port } = server.address();
-      server.close(() => resolvePort(port));
-    });
-  });
-}
+async function createPlayable(templateId, payload) {
+  const name = String(payload.name || '').trim();
+  const slug = slugify(name);
 
-async function waitForPreview(port, timeoutMs = 20000) {
-  const start = Date.now();
+  if (!name) throw new Error('Playable name is required.');
+  if (!slug) throw new Error('Playable name must include letters or numbers.');
 
-  while (Date.now() - start < timeoutMs) {
-    try {
-      await new Promise((resolveSocket, reject) => {
-        const socket = net.createConnection({ port, host: '127.0.0.1' });
-        socket.once('connect', () => {
-          socket.end();
-          resolveSocket();
-        });
-        socket.once('error', reject);
-        socket.setTimeout(1000, () => {
-          socket.destroy();
-          reject(new Error('Timed out connecting to preview server.'));
-        });
-      });
-      return;
-    } catch {
-      await new Promise((resolveSleep) => setTimeout(resolveSleep, 250));
-    }
-  }
-
-  throw new Error('Preview server did not start in time.');
-}
-
-async function createPreview(templateId, payload) {
   const manifest = await getManifest(templateId);
   const templateDir = safeJoin(templatesDir, templateId);
-  const previewId = `${templateId}-${Date.now()}-${randomUUID().slice(0, 8)}`;
-  const previewDir = join(previewsDir, previewId);
+  const playableDir = safeJoin(playablesDir, slug);
 
-  await mkdir(previewsDir, { recursive: true });
-  await cp(templateDir, previewDir, {
-    recursive: true,
-    filter: (source) => !source.includes(`${templateId}/dist`) && !source.endsWith('.DS_Store')
-  });
-
-  const writtenAssets = await applyAssets(previewDir, manifest, payload.assets);
-  await applyConfig(templateDir, previewDir, manifest, payload.config);
-
-  if (templateId === 'catcher') {
-    await writeCatcherAssetsModule(previewDir, writtenAssets.targets?.length || 0);
+  await mkdir(playablesDir, { recursive: true });
+  if (await pathExists(playableDir)) {
+    throw new Error(`A playable named "${slug}" already exists.`);
   }
 
-  const port = await findOpenPort(4100 + activePreviews.size);
-  const logPath = join(previewDir, 'preview.log');
-  const logStream = createWriteStream(logPath, { flags: 'a' });
-  const child = spawn('npm', ['run', 'dev', '--', '--port', String(port)], {
-    cwd: previewDir,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, BROWSER: 'none' }
-  });
+  try {
+    await cp(templateDir, playableDir, {
+      recursive: true,
+      filter: (source) => !source.includes(`${templateId}/dist`) && !source.endsWith('.DS_Store')
+    });
 
-  child.stdout.pipe(logStream);
-  child.stderr.pipe(logStream);
-  activePreviews.set(previewId, { child, previewDir, port });
-  child.once('exit', () => activePreviews.delete(previewId));
+    const writtenAssets = await applyAssets(playableDir, manifest, payload.assets);
+    await applyConfig(templateDir, playableDir, manifest, payload.config);
 
-  await waitForPreview(port);
+    if (templateId === 'catcher') {
+      await writeCatcherAssetsModule(playableDir, writtenAssets.targets?.length || 0);
+    }
 
-  return {
-    id: previewId,
-    url: `http://127.0.0.1:${port}`,
-    path: previewDir
-  };
+    const metadata = {
+      name,
+      slug,
+      templateId,
+      templateName: manifest.name,
+      createdAt: new Date().toISOString()
+    };
+
+    await writeFile(join(playableDir, 'playable.json'), `${JSON.stringify(metadata, null, 2)}\n`);
+    return metadata;
+  } catch (error) {
+    await rm(playableDir, { recursive: true, force: true });
+    throw error;
+  }
 }
 
 async function serveStatic(req, res) {
@@ -376,11 +380,16 @@ async function handleApi(req, res) {
     return;
   }
 
-  const previewMatch = requestUrl.pathname.match(/^\/api\/templates\/([^/]+)\/preview$/);
-  if (req.method === 'POST' && previewMatch) {
+  if (req.method === 'GET' && requestUrl.pathname === '/api/playables') {
+    sendJson(res, 200, { playables: await listPlayables() });
+    return;
+  }
+
+  const createMatch = requestUrl.pathname.match(/^\/api\/templates\/([^/]+)\/create$/);
+  if (req.method === 'POST' && createMatch) {
     const payload = await readRequestJson(req);
-    const preview = await createPreview(previewMatch[1], payload);
-    sendJson(res, 201, { preview });
+    const playable = await createPlayable(createMatch[1], payload);
+    sendJson(res, 201, { playable });
     return;
   }
 
@@ -399,13 +408,8 @@ async function requestHandler(req, res) {
   }
 }
 
-async function cleanPreviews() {
-  await rm(previewsDir, { recursive: true, force: true });
-  await mkdir(previewsDir, { recursive: true });
-}
-
 const appPort = Number(process.env.PORT || 3000);
-await cleanPreviews();
+await mkdir(playablesDir, { recursive: true });
 
 const server = createServer(requestHandler);
 server.listen(appPort, '127.0.0.1', () => {
@@ -413,10 +417,8 @@ server.listen(appPort, '127.0.0.1', () => {
 });
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
-  process.on(signal, async () => {
-    for (const preview of activePreviews.values()) preview.child.kill('SIGTERM');
+  process.on(signal, () => {
     server.close();
-    await cleanPreviews();
     process.exit(0);
   });
 }

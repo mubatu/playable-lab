@@ -1,2 +1,4 @@
 node_modules
 .DS_Store
+my-playables/*
+!my-playables/.gitkeep

@@ -1,23 +1,53 @@
 const state = {
+  view: 'home',
   templates: [],
+  playables: [],
   selectedTemplate: null,
+  selectedPlayable: null,
   configValues: {}
 };
 
 const elements = {
   status: document.querySelector('#status'),
+  views: {
+    home: document.querySelector('#homeView'),
+    playables: document.querySelector('#playablesView'),
+    create: document.querySelector('#createView')
+  },
+  tabButtons: document.querySelectorAll('.tab-button'),
+  viewButtons: document.querySelectorAll('[data-view]'),
   templateList: document.querySelector('#templateList'),
+  playablesList: document.querySelector('#playablesList'),
+  playableDetail: document.querySelector('#playableDetail'),
+  playableName: document.querySelector('#playableName'),
   templateName: document.querySelector('#templateName'),
   assetFields: document.querySelector('#assetFields'),
   configFields: document.querySelector('#configFields'),
   advancedFields: document.querySelector('#advancedFields'),
   configForm: document.querySelector('#configForm'),
   resetButton: document.querySelector('#resetButton'),
-  previewButton: document.querySelector('#previewButton')
+  createButton: document.querySelector('#createButton'),
+  refreshPlayablesButton: document.querySelector('#refreshPlayablesButton')
 };
 
 function setStatus(message) {
   elements.status.textContent = message;
+}
+
+function setView(view) {
+  state.view = view;
+
+  for (const [name, element] of Object.entries(elements.views)) {
+    element.classList.toggle('active', name === view);
+  }
+
+  for (const button of elements.tabButtons) {
+    button.classList.toggle('active', button.dataset.view === view);
+  }
+
+  if (view === 'playables') {
+    loadPlayables();
+  }
 }
 
 function renderTemplates() {
@@ -31,6 +61,69 @@ function renderTemplates() {
     button.addEventListener('click', () => selectTemplate(template.id));
     elements.templateList.append(button);
   }
+}
+
+function renderPlayables() {
+  elements.playablesList.replaceChildren();
+
+  if (state.playables.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.innerHTML = '<h2>No playables yet</h2><p>Create your first playable from a template.</p>';
+    elements.playablesList.append(empty);
+    renderPlayableDetail();
+    return;
+  }
+
+  for (const playable of state.playables) {
+    const button = document.createElement('button');
+    button.className = `project-button${state.selectedPlayable?.slug === playable.slug ? ' active' : ''}`;
+    button.type = 'button';
+    button.innerHTML = `
+      <span>${playable.name}</span>
+      <small>${playable.templateName || playable.templateId} · ${formatDate(playable.createdAt)}</small>
+    `;
+    button.addEventListener('click', () => selectPlayable(playable.slug));
+    elements.playablesList.append(button);
+  }
+}
+
+function renderPlayableDetail() {
+  const playable = state.selectedPlayable;
+
+  if (!playable) {
+    elements.playableDetail.innerHTML = `
+      <p class="eyebrow">Selected Playable</p>
+      <h2>No playable selected</h2>
+      <p class="muted">Choose a project to reveal its actions.</p>
+    `;
+    return;
+  }
+
+  elements.playableDetail.innerHTML = `
+    <p class="eyebrow">Selected Playable</p>
+    <h2>${playable.name}</h2>
+    <dl class="project-meta">
+      <div><dt>Folder</dt><dd>my-playables/${playable.slug}</dd></div>
+      <div><dt>Template</dt><dd>${playable.templateName || playable.templateId}</dd></div>
+      <div><dt>Created</dt><dd>${formatDate(playable.createdAt)}</dd></div>
+    </dl>
+    <div class="project-actions">
+      <button class="primary-button" type="button" disabled>Preview</button>
+      <button class="secondary-button" type="button" disabled>Build</button>
+    </div>
+  `;
+}
+
+function selectPlayable(slug) {
+  state.selectedPlayable = state.playables.find((playable) => playable.slug === slug) || null;
+  renderPlayables();
+  renderPlayableDetail();
+}
+
+function formatDate(value) {
+  if (!value) return 'Unknown date';
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
 function makeFieldWrapper(field) {
@@ -119,6 +212,7 @@ function renderConfigField(field) {
 
 function resetConfigValues(template) {
   state.configValues = {};
+  if (!template) return;
   for (const field of template.config || []) {
     state.configValues[field.path] = field.default;
   }
@@ -195,57 +289,80 @@ function collectConfig(template) {
   return config;
 }
 
-async function createPreview(event) {
+async function createPlayable(event) {
   event.preventDefault();
   const template = state.selectedTemplate;
   if (!template) return;
 
-  const previewWindow = window.open('', '_blank');
-  elements.previewButton.disabled = true;
-  setStatus('Preparing preview');
+  elements.createButton.disabled = true;
+  setStatus('Creating');
 
   try {
-    const response = await fetch(`/api/templates/${template.id}/preview`, {
+    const response = await fetch(`/api/templates/${template.id}/create`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
+        name: elements.playableName.value,
         assets: await collectAssets(template),
         config: collectConfig(template)
       })
     });
 
     const body = await response.json();
-    if (!response.ok) throw new Error(body.error || 'Preview failed.');
+    if (!response.ok) throw new Error(body.error || 'Create failed.');
 
-    setStatus('Preview ready');
-    if (previewWindow) {
-      previewWindow.location.href = body.preview.url;
-    } else {
-      setStatus(`Preview ready: ${body.preview.url}`);
-    }
+    elements.configForm.reset();
+    resetConfigValues(template);
+    renderSelectedTemplate();
+    state.selectedPlayable = body.playable;
+    setStatus('Created');
+    await loadPlayables();
+    selectPlayable(body.playable.slug);
+    setView('playables');
   } catch (error) {
-    if (previewWindow) previewWindow.close();
     setStatus(error.message);
   } finally {
-    elements.previewButton.disabled = false;
+    elements.createButton.disabled = false;
   }
 }
 
 async function loadTemplates() {
-  setStatus('Loading');
   const response = await fetch('/api/templates');
   const body = await response.json();
   state.templates = body.templates || [];
   selectTemplate(state.templates[0]?.id);
+}
+
+async function loadPlayables() {
+  setStatus('Loading');
+  const response = await fetch('/api/playables');
+  const body = await response.json();
+  state.playables = body.playables || [];
+  if (state.selectedPlayable) {
+    state.selectedPlayable = state.playables.find((playable) => playable.slug === state.selectedPlayable.slug) || null;
+  }
+  renderPlayables();
+  renderPlayableDetail();
   setStatus('Ready');
 }
 
-elements.configForm.addEventListener('submit', createPreview);
+for (const button of elements.viewButtons) {
+  button.addEventListener('click', () => setView(button.dataset.view));
+}
+
+elements.configForm.addEventListener('submit', createPlayable);
+elements.refreshPlayablesButton.addEventListener('click', loadPlayables);
 elements.resetButton.addEventListener('click', () => {
   if (!state.selectedTemplate) return;
+  elements.configForm.reset();
   resetConfigValues(state.selectedTemplate);
   renderSelectedTemplate();
   setStatus('Reset');
 });
 
-loadTemplates().catch((error) => setStatus(error.message));
+Promise.all([loadTemplates(), loadPlayables()])
+  .then(() => {
+    setStatus('Ready');
+    setView('home');
+  })
+  .catch((error) => setStatus(error.message));
