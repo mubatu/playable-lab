@@ -109,42 +109,12 @@
       "step": 1
     },
     {
-      "path": "grid.x",
-      "label": "Grid X",
-      "type": "number",
-      "default": 105,
-      "min": 0,
-      "max": 1080,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "grid.y",
-      "label": "Grid Y",
+      "path": "grid.top",
+      "label": "Grid Top Offset",
       "type": "number",
       "default": 600,
       "min": 0,
       "max": 1920,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "grid.width",
-      "label": "Grid Width",
-      "type": "number",
-      "default": 750,
-      "min": 200,
-      "max": 1080,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "grid.height",
-      "label": "Grid Height",
-      "type": "number",
-      "default": 720,
-      "min": 200,
-      "max": 1600,
       "step": 1,
       "advanced": true
     },

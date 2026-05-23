@@ -7,6 +7,7 @@ import {
   createGridCells,
   findMatchingGroup,
   getCellAtPoint,
+  getGridMetrics,
   GridCell
 } from './grid';
 import { calculateViewportLayout, ViewportLayout } from './sizing';
@@ -258,13 +259,13 @@ export class Game {
   }
 
   private renderGrid(): void {
-    for (const cell of this.cells) {
-      this.renderCell(cell);
-    }
+    const grid = getGridMetrics();
+
+    this.renderGridPanel(grid.x, grid.y, grid.width, grid.height);
 
     this.context.save();
     this.context.beginPath();
-    this.context.rect(GAME_CONFIG.grid.x, GAME_CONFIG.grid.y, GAME_CONFIG.grid.width, GAME_CONFIG.grid.height);
+    this.context.rect(grid.x, grid.y, grid.width, grid.height);
     this.context.clip();
 
     for (const cell of this.cells) {
@@ -274,17 +275,17 @@ export class Game {
     this.context.restore();
   }
 
-  private renderCell(cell: GridCell): void {
+  private renderGridPanel(x: number, y: number, width: number, height: number): void {
     const { context } = this;
 
     context.save();
-    context.shadowColor = GAME_CONFIG.grid.cellShadowColor;
-    context.shadowBlur = 12;
-    context.shadowOffsetY = 8;
-    context.fillStyle = GAME_CONFIG.grid.cellFillColor;
-    context.strokeStyle = GAME_CONFIG.grid.cellStrokeColor;
-    context.lineWidth = GAME_CONFIG.grid.cellStrokeWidth;
-    this.drawRoundedRect(cell.x, cell.y, cell.width, cell.height, GAME_CONFIG.grid.cellRadius);
+    context.shadowColor = GAME_CONFIG.grid.panelShadowColor;
+    context.shadowBlur = 18;
+    context.shadowOffsetY = 10;
+    context.fillStyle = GAME_CONFIG.grid.panelFillColor;
+    context.strokeStyle = GAME_CONFIG.grid.panelStrokeColor;
+    context.lineWidth = GAME_CONFIG.grid.panelStrokeWidth;
+    this.drawRoundedRect(x, y, width, height, GAME_CONFIG.grid.panelRadius);
     context.fill();
     context.stroke();
     context.restore();

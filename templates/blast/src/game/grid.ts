@@ -26,8 +26,8 @@ export function createGridCells(objectCount: number, targetIndex: number): GridC
 
   for (let row = 0; row < GAME_CONFIG.grid.rows; row += 1) {
     for (let column = 0; column < GAME_CONFIG.grid.columns; column += 1) {
-      const x = GAME_CONFIG.grid.x + column * (metrics.cellWidth + GAME_CONFIG.grid.gapX);
-      const y = GAME_CONFIG.grid.y + row * (metrics.cellHeight + GAME_CONFIG.grid.gapY);
+      const x = metrics.x + GAME_CONFIG.grid.padding + column * (metrics.cellWidth + GAME_CONFIG.grid.gapX);
+      const y = metrics.y + GAME_CONFIG.grid.padding + row * (metrics.cellHeight + GAME_CONFIG.grid.gapY);
 
       cells.push({
         row,
@@ -51,14 +51,16 @@ export function createGridCells(objectCount: number, targetIndex: number): GridC
 export function getGridMetrics(): GridMetrics {
   const totalGapX = GAME_CONFIG.grid.gapX * Math.max(0, GAME_CONFIG.grid.columns - 1);
   const totalGapY = GAME_CONFIG.grid.gapY * Math.max(0, GAME_CONFIG.grid.rows - 1);
-  const cellWidth = (GAME_CONFIG.grid.width - totalGapX) / GAME_CONFIG.grid.columns;
-  const cellHeight = (GAME_CONFIG.grid.height - totalGapY) / GAME_CONFIG.grid.rows;
+  const cellWidth = GAME_CONFIG.grid.objectSize;
+  const cellHeight = GAME_CONFIG.grid.objectSize;
+  const width = GAME_CONFIG.grid.columns * cellWidth + totalGapX + GAME_CONFIG.grid.padding * 2;
+  const height = GAME_CONFIG.grid.rows * cellHeight + totalGapY + GAME_CONFIG.grid.padding * 2;
 
   return {
-    x: GAME_CONFIG.grid.x,
-    y: GAME_CONFIG.grid.y,
-    width: GAME_CONFIG.grid.width,
-    height: GAME_CONFIG.grid.height,
+    x: (GAME_CONFIG.stage.width - width) / 2,
+    y: GAME_CONFIG.grid.top,
+    width,
+    height,
     cellWidth,
     cellHeight
   };
@@ -136,7 +138,7 @@ export function collapseBlastedCells(
         } else {
           spawnCount += 1;
           cell.objectIndex = chooseObjectIndex(objectCount, targetIndex);
-          cell.objectY = GAME_CONFIG.grid.y - spawnCount * (cell.height + GAME_CONFIG.grid.gapY) + cell.height / 2;
+          cell.objectY = getGridMetrics().y - spawnCount * (cell.height + GAME_CONFIG.grid.gapY) + cell.height / 2;
         }
       }
     }
