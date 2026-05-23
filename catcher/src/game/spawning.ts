@@ -18,11 +18,12 @@ export function getSpawnInterval(elapsedSeconds: number): number {
   return GAME_CONFIG.gameplay.spawnIntervalMs - intervalRange * ramp;
 }
 
-export function createFallingItem(elapsedSeconds: number): FallingItem {
+export function createFallingItem(elapsedSeconds: number, targetCount: number): FallingItem {
   const { stage, gameplay, fallingItem } = GAME_CONFIG;
   const kind = Math.random() < gameplay.trapChance ? 'trap' : 'target';
   const speedRamp = Math.min(1, elapsedSeconds / gameplay.spawnRampDurationSeconds) * fallingItem.speedRamp;
   const spawnRotation = degreesToRadians(fallingItem.spawnRotationAngle);
+  const targetIndex = Math.floor(Math.random() * Math.max(1, targetCount));
 
   return {
     id: nextItemId++,
@@ -33,6 +34,6 @@ export function createFallingItem(elapsedSeconds: number): FallingItem {
     speed: randomBetween(fallingItem.minSpeed, fallingItem.maxSpeed) + speedRamp,
     rotation: randomBetween(-spawnRotation, spawnRotation),
     rotationSpeed: randomBetween(fallingItem.rotationSpeedMin, fallingItem.rotationSpeedMax),
-    targetIndex: Math.floor(Math.random() * 3)
+    targetIndex
   };
 }

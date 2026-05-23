@@ -58,7 +58,7 @@ export const GAME_CONFIG = {
       // Outer glow blur around the basket.
       glowBlur: 28,
       // Ripple circle size at the center of the basket.
-      rippleRadius: 30,
+      rippleRadius: 40,
       // Number of sparkles shown around the basket for a target catch.
       sparkleCount: 8
     }

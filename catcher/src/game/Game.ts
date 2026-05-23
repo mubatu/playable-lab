@@ -163,7 +163,7 @@ export class Game {
     if (this.spawnAccumulator < interval) return;
 
     this.spawnAccumulator = 0;
-    this.items.push(createFallingItem(this.state.elapsedSeconds));
+    this.items.push(createFallingItem(this.state.elapsedSeconds, this.images.targets.length));
   }
 
   private updateItems(deltaSeconds: number): void {
