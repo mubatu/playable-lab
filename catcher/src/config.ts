@@ -13,7 +13,7 @@ export const GAME_CONFIG = {
     // Total game duration before the game ends.
     durationSeconds: 30,
     // Score goal shown as `score/targetScore`. Reaching this score ends the game early.
-    targetScore: 1,
+    targetScore: 10,
     // Initial delay between falling item spawns.
     spawnIntervalMs: 360,
     // Fastest spawn delay after difficulty ramps up.
@@ -39,7 +39,29 @@ export const GAME_CONFIG = {
     // Shrinks the collision area from the bottom.
     collisionInsetBottom: 36,
     // How quickly the basket follows pointer movement. Higher values feel snappier; lower values feel smoother.
-    followLerp: 0.36
+    followLerp: 0.36,
+    feedback: {
+      // How long the catch feedback stays visible in milliseconds.
+      durationMs: 620,
+      // Text size for +1/-1 feedback in game-world pixels.
+      textSize: 100,
+      // How far the +1/-1 text floats upward during the effect.
+      textRise: 54,
+      // Target catch text color.
+      targetTextColor: '#45f048',
+      // Bomb catch text color.
+      trapTextColor: '#ff1f1f',
+      // Target catch basket glow color.
+      targetGlowColor: '#ffffff',
+      // Bomb catch basket glow color.
+      trapGlowColor: '#ff1212',
+      // Outer glow blur around the basket.
+      glowBlur: 28,
+      // Ripple circle size at the center of the basket.
+      rippleRadius: 30,
+      // Number of sparkles shown around the basket for a target catch.
+      sparkleCount: 8
+    }
   },
   fallingItem: {
     // Render size of targets and traps.

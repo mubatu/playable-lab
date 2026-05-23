@@ -6,6 +6,23 @@ import { createInitialGameState, GameState } from './GameState';
 import { calculateViewportLayout, ViewportLayout } from './sizing';
 import { createFallingItem, getSpawnInterval } from './spawning';
 
+type CatchFeedbackKind = 'target' | 'trap';
+
+interface CatchFeedback {
+  kind: CatchFeedbackKind;
+  elapsedSeconds: number;
+  durationSeconds: number;
+  basketX: number;
+  basketY: number;
+  particles: CatchFeedbackParticle[];
+}
+
+interface CatchFeedbackParticle {
+  angle: number;
+  distance: number;
+  size: number;
+}
+
 interface GameCallbacks {
   onHudChange: (state: GameState) => void;
   onCatchTarget: () => void;
@@ -25,6 +42,7 @@ export class Game {
   private animationFrame = 0;
   private lastTime = 0;
   private spawnAccumulator = 0;
+  private catchFeedback: CatchFeedback | null = null;
 
   constructor(canvas: HTMLCanvasElement, images: LoadedImages, callbacks: GameCallbacks) {
     const context = canvas.getContext('2d');
@@ -122,6 +140,7 @@ export class Game {
     this.updateBasket();
     this.updateSpawning(deltaSeconds);
     this.updateItems(deltaSeconds);
+    this.updateCatchFeedback(deltaSeconds);
     this.callbacks.onHudChange(this.state);
 
     if (this.state.remainingSeconds <= 0 || this.state.score >= this.state.targetScore) {
@@ -170,12 +189,52 @@ export class Game {
   private catchItem(item: FallingItem): void {
     if (item.kind === 'target') {
       this.state.score += 1;
+      this.showCatchFeedback('target');
       this.callbacks.onCatchTarget();
       return;
     }
 
     this.state.score -= 1;
+    this.showCatchFeedback('trap');
     this.callbacks.onCatchTrap();
+  }
+
+  private showCatchFeedback(kind: CatchFeedbackKind): void {
+    const durationSeconds = GAME_CONFIG.basket.feedback.durationMs / 1000;
+
+    this.catchFeedback = {
+      kind,
+      elapsedSeconds: 0,
+      durationSeconds,
+      basketX: this.basket.x,
+      basketY: this.basket.y,
+      particles: this.createFeedbackParticles()
+    };
+  }
+
+  private createFeedbackParticles(): CatchFeedbackParticle[] {
+    const particles: CatchFeedbackParticle[] = [];
+    const { sparkleCount } = GAME_CONFIG.basket.feedback;
+
+    for (let index = 0; index < sparkleCount; index += 1) {
+      particles.push({
+        angle: (Math.PI * 2 * index) / sparkleCount + Math.random() * 0.35,
+        distance: 150 + Math.random() * 118,
+        size: 16 + Math.random() * 20
+      });
+    }
+
+    return particles;
+  }
+
+  private updateCatchFeedback(deltaSeconds: number): void {
+    if (!this.catchFeedback) return;
+
+    this.catchFeedback.elapsedSeconds += deltaSeconds;
+
+    if (this.catchFeedback.elapsedSeconds >= this.catchFeedback.durationSeconds) {
+      this.catchFeedback = null;
+    }
   }
 
   private render(): void {
@@ -192,7 +251,9 @@ export class Game {
 
     if (this.state.status !== 'ended') {
       this.renderItems();
+      this.renderBasketGlow();
       this.renderBasket();
+      this.renderCatchFeedback();
     }
   }
 
@@ -216,6 +277,118 @@ export class Game {
       this.basket.width,
       this.basket.height
     );
+  }
+
+  private renderBasketGlow(): void {
+    if (!this.catchFeedback) return;
+
+    const progress = this.getFeedbackProgress(this.catchFeedback);
+    const alpha = 1 - progress;
+    const glowColor = this.getFeedbackGlowColor(this.catchFeedback.kind);
+
+    this.context.save();
+    this.context.globalAlpha = alpha;
+    this.context.shadowColor = glowColor;
+    this.context.shadowBlur = GAME_CONFIG.basket.feedback.glowBlur * (1 + (1 - progress) * 0.6);
+    this.context.drawImage(
+      this.images.basket,
+      this.basket.x - this.basket.width / 2,
+      this.basket.y - this.basket.height / 2,
+      this.basket.width,
+      this.basket.height
+    );
+    this.context.restore();
+  }
+
+  private renderCatchFeedback(): void {
+    if (!this.catchFeedback) return;
+
+    const feedback = this.catchFeedback;
+    const progress = this.getFeedbackProgress(feedback);
+    const alpha = 1 - progress;
+
+    this.renderCatchRipple(feedback, progress, alpha);
+
+    if (feedback.kind === 'target') {
+      this.renderSparkles(feedback, progress, alpha);
+    }
+
+    this.renderCatchText(feedback, progress, alpha);
+  }
+
+  private renderCatchRipple(feedback: CatchFeedback, progress: number, alpha: number): void {
+    const radius = GAME_CONFIG.basket.feedback.rippleRadius * (0.65 + progress);
+
+    this.context.save();
+    this.context.globalAlpha = alpha;
+    this.context.strokeStyle = this.getFeedbackGlowColor(feedback.kind);
+    this.context.lineWidth = 8;
+    this.context.shadowColor = this.getFeedbackGlowColor(feedback.kind);
+    this.context.shadowBlur = 10;
+    this.context.beginPath();
+    this.context.arc(feedback.basketX, feedback.basketY - this.basket.height * 0.12, radius, 0, Math.PI * 2);
+    this.context.stroke();
+    this.context.restore();
+  }
+
+  private renderCatchText(feedback: CatchFeedback, progress: number, alpha: number): void {
+    const text = feedback.kind === 'target' ? '+1' : '-1';
+    const color = feedback.kind === 'target' ? GAME_CONFIG.basket.feedback.targetTextColor : GAME_CONFIG.basket.feedback.trapTextColor;
+    const y = feedback.basketY - this.basket.height * 0.46 - GAME_CONFIG.basket.feedback.textRise * progress;
+
+    this.context.save();
+    this.context.globalAlpha = Math.min(1, alpha * 1.35);
+    this.context.fillStyle = color;
+    this.context.strokeStyle = feedback.kind === 'target' ? '#4b9d38' : '#9a0000';
+    this.context.lineWidth = 12;
+    this.context.font = `900 ${GAME_CONFIG.basket.feedback.textSize}px Arial, sans-serif`;
+    this.context.textAlign = 'center';
+    this.context.textBaseline = 'middle';
+    this.context.shadowColor = 'rgba(255, 255, 255, 0.78)';
+    this.context.shadowBlur = feedback.kind === 'target' ? 12 : 0;
+    this.context.strokeText(text, feedback.basketX, y);
+    this.context.fillText(text, feedback.basketX, y);
+    this.context.restore();
+  }
+
+  private renderSparkles(feedback: CatchFeedback, progress: number, alpha: number): void {
+    this.context.save();
+    this.context.globalAlpha = alpha;
+    this.context.fillStyle = '#ffffff';
+    this.context.shadowColor = '#ffffff';
+    this.context.shadowBlur = 12;
+
+    for (const particle of feedback.particles) {
+      const distance = particle.distance * (0.45 + progress * 0.7);
+      const x = feedback.basketX + Math.cos(particle.angle) * distance;
+      const y = feedback.basketY - this.basket.height * 0.08 + Math.sin(particle.angle) * distance;
+
+      this.drawSparkle(x, y, particle.size * (1 - progress * 0.25));
+    }
+
+    this.context.restore();
+  }
+
+  private drawSparkle(x: number, y: number, size: number): void {
+    this.context.beginPath();
+    this.context.moveTo(x, y - size);
+    this.context.lineTo(x + size * 0.24, y - size * 0.24);
+    this.context.lineTo(x + size, y);
+    this.context.lineTo(x + size * 0.24, y + size * 0.24);
+    this.context.lineTo(x, y + size);
+    this.context.lineTo(x - size * 0.24, y + size * 0.24);
+    this.context.lineTo(x - size, y);
+    this.context.lineTo(x - size * 0.24, y - size * 0.24);
+    this.context.closePath();
+    this.context.fill();
+  }
+
+  private getFeedbackProgress(feedback: CatchFeedback): number {
+    return Math.min(1, feedback.elapsedSeconds / feedback.durationSeconds);
+  }
+
+  private getFeedbackGlowColor(kind: CatchFeedbackKind): string {
+    return kind === 'target' ? GAME_CONFIG.basket.feedback.targetGlowColor : GAME_CONFIG.basket.feedback.trapGlowColor;
   }
 
   private createBasket(): BasketState {
