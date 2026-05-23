@@ -1,0 +1,15 @@
+{
+  "name": "blast-playable",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "playable-scripts dev",
+    "build": "playable-scripts build"
+  },
+  "dependencies": {
+    "@smoud/playable-sdk": "^1.1.1"
+  },
+  "devDependencies": {
+    "@smoud/playable-scripts": "^1.2.9"
+  }
+}

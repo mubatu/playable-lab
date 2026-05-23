@@ -1,0 +1,11 @@
+{
+  "outDir": "builds",
+  "filename": "{app}_{name}_{version}_{date}_{language}_{network}",
+  "app": "PlayableLab",
+  "name": "Blast",
+  "version": "v1",
+  "language": "en",
+  "orientation": "both",
+  "googlePlayUrl": "https://play.google.com/store/games",
+  "appStoreUrl": "https://www.apple.com/app-store/"
+}
