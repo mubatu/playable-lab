@@ -5,6 +5,7 @@ import { BasketState, FallingItem } from './entities';
 import { createInitialGameState, GameState } from './GameState';
 import { calculateViewportLayout, ViewportLayout } from './sizing';
 import { createFallingItem, getSpawnInterval } from './spawning';
+import { TutorialHand } from './TutorialHand';
 
 type CatchFeedbackKind = 'target' | 'trap';
 
@@ -43,6 +44,7 @@ export class Game {
   private lastTime = 0;
   private spawnAccumulator = 0;
   private catchFeedback: CatchFeedback | null = null;
+  private readonly tutorialHand = new TutorialHand();
 
   constructor(canvas: HTMLCanvasElement, images: LoadedImages, callbacks: GameCallbacks) {
     const context = canvas.getContext('2d');
@@ -65,12 +67,14 @@ export class Game {
 
   markReady(): void {
     this.state.status = 'ready';
+    this.tutorialHand.reset(performance.now());
     this.callbacks.onHudChange(this.state);
-    this.render();
+    this.loop(performance.now());
   }
 
   start(): void {
     if (this.state.status === 'playing') return;
+    cancelAnimationFrame(this.animationFrame);
     this.state = createInitialGameState();
     this.state.status = 'playing';
     this.items.length = 0;
@@ -123,12 +127,23 @@ export class Game {
     this.basket.targetX = Math.max(halfWidth, Math.min(GAME_CONFIG.stage.width - halfWidth, x));
   }
 
+  canStartPointerDrag(x: number, y: number): boolean {
+    if (this.state.status === 'playing') return true;
+    if (this.state.status !== 'ready') return false;
+
+    return this.isPointInsideBasket(x, y);
+  }
+
   private loop = (time: number): void => {
-    if (this.state.status !== 'playing') return;
+    if (this.state.status !== 'playing' && this.state.status !== 'ready') return;
 
     const deltaSeconds = Math.min(0.033, (time - this.lastTime) / 1000);
     this.lastTime = time;
-    this.update(deltaSeconds);
+
+    if (this.state.status === 'playing') {
+      this.update(deltaSeconds);
+    }
+
     this.render();
     this.animationFrame = requestAnimationFrame(this.loop);
   };
@@ -254,6 +269,7 @@ export class Game {
       this.renderBasketGlow();
       this.renderBasket();
       this.renderCatchFeedback();
+      this.renderTutorialHand();
     }
   }
 
@@ -391,6 +407,11 @@ export class Game {
     return kind === 'target' ? GAME_CONFIG.basket.feedback.targetGlowColor : GAME_CONFIG.basket.feedback.trapGlowColor;
   }
 
+  private renderTutorialHand(): void {
+    if (this.state.status !== 'ready') return;
+    this.tutorialHand.render(this.context, this.images, this.basket);
+  }
+
   private createBasket(): BasketState {
     const x = GAME_CONFIG.stage.width / 2;
     const y = GAME_CONFIG.stage.height - GAME_CONFIG.basket.bottomOffset - GAME_CONFIG.basket.height / 2;
@@ -408,5 +429,14 @@ export class Game {
     const halfWidth = this.basket.width / 2;
     this.basket.x = Math.max(halfWidth, Math.min(GAME_CONFIG.stage.width - halfWidth, this.basket.x));
     this.basket.targetX = Math.max(halfWidth, Math.min(GAME_CONFIG.stage.width - halfWidth, this.basket.targetX));
+  }
+
+  private isPointInsideBasket(x: number, y: number): boolean {
+    return (
+      x >= this.basket.x - this.basket.width / 2 &&
+      x <= this.basket.x + this.basket.width / 2 &&
+      y >= this.basket.y - this.basket.height / 2 &&
+      y <= this.basket.y + this.basket.height / 2
+    );
   }
 }

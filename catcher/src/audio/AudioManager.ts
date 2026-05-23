@@ -29,6 +29,11 @@ export class AudioManager {
     this.playSoundtrack();
   }
 
+  startSoundtrack(): void {
+    if (this.mutedByPause || this.networkVolume <= 0) return;
+    this.soundtrack.play().catch(() => undefined);
+  }
+
   playEffect(name: EffectName): void {
     if (!this.unlocked || this.mutedByPause || this.networkVolume <= 0) return;
 
@@ -64,7 +69,7 @@ export class AudioManager {
 
   private playSoundtrack(): void {
     if (!this.unlocked || this.mutedByPause || this.networkVolume <= 0) return;
-    this.soundtrack.play().catch(() => undefined);
+    this.startSoundtrack();
   }
 
   private applyVolumes(): void {

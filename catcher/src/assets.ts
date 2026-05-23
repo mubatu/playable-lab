@@ -2,6 +2,7 @@ import background from './assets/background.png';
 import endBackground from './assets/end-background.png';
 import basket from './assets/basket.png';
 import bomb from './assets/bomb.png';
+import hand from './assets/hand.png';
 import target1 from './assets/target-1.png';
 import target2 from './assets/target-2.png';
 import target3 from './assets/target-3.png';
@@ -14,6 +15,7 @@ export const imageSources = {
   endBackground,
   basket,
   bomb,
+  hand,
   targets: [target1, target2, target3]
 };
 
@@ -28,6 +30,7 @@ export interface LoadedImages {
   endBackground: HTMLImageElement;
   basket: HTMLImageElement;
   bomb: HTMLImageElement;
+  hand: HTMLImageElement;
   targets: HTMLImageElement[];
 }
 
@@ -41,11 +44,12 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 export async function loadImages(): Promise<LoadedImages> {
-  const [backgroundImage, endBackgroundImage, basketImage, bombImage, ...targetImages] = await Promise.all([
+  const [backgroundImage, endBackgroundImage, basketImage, bombImage, handImage, ...targetImages] = await Promise.all([
     loadImage(imageSources.background),
     loadImage(imageSources.endBackground),
     loadImage(imageSources.basket),
     loadImage(imageSources.bomb),
+    loadImage(imageSources.hand),
     ...imageSources.targets.map(loadImage)
   ]);
 
@@ -54,6 +58,7 @@ export async function loadImages(): Promise<LoadedImages> {
     endBackground: endBackgroundImage,
     basket: basketImage,
     bomb: bombImage,
+    hand: handImage,
     targets: targetImages
   };
 }

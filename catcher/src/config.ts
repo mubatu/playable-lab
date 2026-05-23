@@ -40,6 +40,24 @@ export const GAME_CONFIG = {
     collisionInsetBottom: 36,
     // How quickly the basket follows pointer movement. Higher values feel snappier; lower values feel smoother.
     followLerp: 0.36,
+    tutorialHand: {
+      // Whether the hand tutorial appears before the first basket touch.
+      enabled: true,
+      // Hand render width in game-world pixels.
+      width: 220,
+      // Hand render height in game-world pixels.
+      height: 220,
+      // Hand Y offset from the basket center in game-world pixels.
+      offsetY: 100,
+      // Horizontal motion distance around the basket center in game-world pixels.
+      moveDistance: 80,
+      // Vertical bob distance in game-world pixels.
+      bobDistance: 0,
+      // Duration of one tutorial motion cycle in milliseconds.
+      cycleDurationMs: 2000,
+      // Hand opacity.
+      opacity: 0.95
+    },
     feedback: {
       // How long the catch feedback stays visible in milliseconds.
       durationMs: 620,

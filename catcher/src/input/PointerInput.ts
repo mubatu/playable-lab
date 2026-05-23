@@ -1,25 +1,29 @@
 import { clientPointToStage, ViewportLayout } from '../game/sizing';
 
+interface StagePoint {
+  x: number;
+  y: number;
+}
+
 interface PointerInputOptions {
   canvas: HTMLCanvasElement;
   getLayout: () => ViewportLayout;
   onMove: (x: number) => void;
-  onFirstInteraction: () => void;
+  shouldStartDrag: (point: StagePoint) => boolean;
 }
 
 export class PointerInput {
   private readonly canvas: HTMLCanvasElement;
   private readonly getLayout: () => ViewportLayout;
   private readonly onMove: (x: number) => void;
-  private readonly onFirstInteraction: () => void;
-  private hasInteracted = false;
+  private readonly shouldStartDrag: (point: StagePoint) => boolean;
   private isDown = false;
 
   constructor(options: PointerInputOptions) {
     this.canvas = options.canvas;
     this.getLayout = options.getLayout;
     this.onMove = options.onMove;
-    this.onFirstInteraction = options.onFirstInteraction;
+    this.shouldStartDrag = options.shouldStartDrag;
 
     this.canvas.addEventListener('pointerdown', this.handlePointerDown);
     this.canvas.addEventListener('pointermove', this.handlePointerMove);
@@ -35,10 +39,13 @@ export class PointerInput {
   }
 
   private handlePointerDown = (event: PointerEvent): void => {
+    const point = this.getStagePoint(event);
+
+    if (!this.shouldStartDrag(point)) return;
+
     this.isDown = true;
     this.canvas.setPointerCapture?.(event.pointerId);
-    this.emitInteraction();
-    this.updatePosition(event);
+    this.onMove(point.x);
   };
 
   private handlePointerMove = (event: PointerEvent): void => {
@@ -51,13 +58,11 @@ export class PointerInput {
   };
 
   private updatePosition(event: PointerEvent): void {
-    const point = clientPointToStage(this.canvas, this.getLayout(), event.clientX, event.clientY);
+    const point = this.getStagePoint(event);
     this.onMove(point.x);
   }
 
-  private emitInteraction(): void {
-    if (this.hasInteracted) return;
-    this.hasInteracted = true;
-    this.onFirstInteraction();
+  private getStagePoint(event: PointerEvent): StagePoint {
+    return clientPointToStage(this.canvas, this.getLayout(), event.clientX, event.clientY);
   }
 }

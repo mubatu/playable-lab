@@ -65,12 +65,16 @@ export class CatcherApp {
       canvas: this.canvas,
       getLayout: () => this.game!.getLayout(),
       onMove: (x) => this.game?.setBasketTarget(x),
-      onFirstInteraction: this.handleFirstAudioInteraction
+      shouldStartDrag: (point) => {
+        if (!this.game?.canStartPointerDrag(point.x, point.y)) return false;
+        this.startGame();
+        return true;
+      }
     });
 
     this.resize(this.options.width, this.options.height);
     this.game.markReady();
-    this.startGame();
+    this.audio.startSoundtrack();
     this.options.onReady();
   }
 
@@ -121,12 +125,12 @@ export class CatcherApp {
     this.hasAudioInteraction = true;
     this.removeAudioUnlockListeners();
     this.audio.unlock();
-    this.startGame();
   };
 
   private startGame(): void {
-    if (!this.hasAudioInteraction || !this.game || this.hasStartedGame || this.hasFinished) return;
+    if (!this.game || this.hasStartedGame || this.hasFinished) return;
     this.hasStartedGame = true;
+    this.handleFirstAudioInteraction();
     this.game.start();
   }
 
