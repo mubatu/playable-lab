@@ -26,7 +26,6 @@ const elements = {
   templateName: document.querySelector('#templateName'),
   assetFields: document.querySelector('#assetFields'),
   configFields: document.querySelector('#configFields'),
-  advancedFields: document.querySelector('#advancedFields'),
   configForm: document.querySelector('#configForm'),
   resetButton: document.querySelector('#resetButton'),
   createButton: document.querySelector('#createButton'),
@@ -167,6 +166,29 @@ function titleize(value) {
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/[-_]+/g, ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function sectionPathForField(field) {
+  const parts = String(field.path || '').split('.').filter(Boolean);
+  if (parts.length <= 1) return parts[0] || 'parameters';
+  return parts.slice(0, -1).join('.');
+}
+
+function sectionLabel(sectionPath) {
+  const sectionName = String(sectionPath || '').split('.').at(-1) || sectionPath;
+  const acronyms = {
+    hud: 'HUD',
+    ui: 'UI'
+  };
+  if (acronyms[sectionName]) return acronyms[sectionName];
+  return titleize(sectionName);
+}
+
+function formatParameterCount(visibleCount, advancedCount) {
+  const parts = [];
+  if (visibleCount > 0) parts.push(`${visibleCount} standard`);
+  if (advancedCount > 0) parts.push(`${advancedCount} advanced`);
+  return parts.join(' · ');
 }
 
 function escapeHtml(value) {
@@ -339,6 +361,81 @@ function renderConfigField(field) {
   return wrapper;
 }
 
+function groupConfigFields(fields) {
+  const groups = [];
+  const groupByPath = new Map();
+
+  for (const field of fields || []) {
+    const sectionPath = sectionPathForField(field);
+    let group = groupByPath.get(sectionPath);
+
+    if (!group) {
+      group = {
+        path: sectionPath,
+        label: sectionLabel(sectionPath),
+        fields: [],
+        advancedFields: []
+      };
+      groupByPath.set(sectionPath, group);
+      groups.push(group);
+    }
+
+    if (field.advanced) group.advancedFields.push(field);
+    else group.fields.push(field);
+  }
+
+  return groups;
+}
+
+function renderParameterSection(group) {
+  const section = document.createElement('section');
+  section.className = 'parameter-section';
+
+  const header = document.createElement('div');
+  header.className = 'parameter-section-header';
+
+  const title = document.createElement('h3');
+  title.textContent = group.label;
+  header.append(title);
+
+  const count = document.createElement('span');
+  count.className = 'parameter-count';
+  const visibleCount = group.fields.length;
+  const advancedCount = group.advancedFields.length;
+  count.textContent = formatParameterCount(visibleCount, advancedCount);
+  header.append(count);
+
+  section.append(header);
+
+  if (group.fields.length > 0) {
+    const fields = document.createElement('div');
+    fields.className = 'field-grid';
+    for (const field of group.fields) {
+      fields.append(renderConfigField(field));
+    }
+    section.append(fields);
+  }
+
+  if (group.advancedFields.length > 0) {
+    const advanced = document.createElement('details');
+    advanced.className = 'section-advanced';
+
+    const summary = document.createElement('summary');
+    summary.textContent = 'Advanced';
+    advanced.append(summary);
+
+    const advancedFields = document.createElement('div');
+    advancedFields.className = 'field-grid';
+    for (const field of group.advancedFields) {
+      advancedFields.append(renderConfigField(field));
+    }
+    advanced.append(advancedFields);
+    section.append(advanced);
+  }
+
+  return section;
+}
+
 function resetConfigValues(template) {
   state.configValues = {};
   if (!template) return;
@@ -352,7 +449,6 @@ function renderSelectedTemplate() {
   elements.templateName.textContent = template?.name || 'Template';
   elements.assetFields.replaceChildren();
   elements.configFields.replaceChildren();
-  elements.advancedFields.replaceChildren();
 
   if (!template) return;
 
@@ -360,9 +456,8 @@ function renderSelectedTemplate() {
     elements.assetFields.append(renderAssetField(asset));
   }
 
-  for (const field of template.config || []) {
-    const target = field.advanced ? elements.advancedFields : elements.configFields;
-    target.append(renderConfigField(field));
+  for (const group of groupConfigFields(template.config)) {
+    elements.configFields.append(renderParameterSection(group));
   }
 }
 

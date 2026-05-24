@@ -294,6 +294,44 @@ h2 {
   margin-top: 24px;
 }
 
+.parameter-sections {
+  display: grid;
+  gap: 22px;
+}
+
+.parameter-section {
+  display: grid;
+  gap: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+
+.parameter-section:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.parameter-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.parameter-section-header h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 20px;
+  letter-spacing: 0;
+}
+
+.parameter-count {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 720;
+  white-space: nowrap;
+}
+
 .field-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -364,17 +402,21 @@ h2 {
   font-size: 12px;
 }
 
-.advanced {
-  margin-top: 24px;
-  border-top: 1px solid var(--line);
-  padding-top: 18px;
+.section-advanced {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 253, 250, 0.58);
 }
 
-.advanced summary {
-  margin-bottom: 14px;
+.section-advanced summary {
   color: var(--blue);
   font-weight: 780;
   cursor: pointer;
+}
+
+.section-advanced[open] summary {
+  margin-bottom: 14px;
 }
 
 .actions,
@@ -670,6 +712,15 @@ h2 {
   .status,
   .tab-button {
     width: 100%;
+  }
+
+  .parameter-section-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .parameter-count {
+    white-space: normal;
   }
 
   .hero {
