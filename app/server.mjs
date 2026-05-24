@@ -1,4 +1,4 @@
-import { createServer } from 'node:http';
+import { createServer as createHttpServer } from 'node:http';
 import { spawn } from 'node:child_process';
 import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { extname, join, normalize, relative, resolve } from 'node:path';
@@ -13,9 +13,12 @@ const {
   allowedOrientations
 } = require('@smoud/playable-scripts/core/utils/parseArgvOptions.js');
 const rootDir = resolve(__dirname, '..');
-const publicDir = join(__dirname, 'public');
+const frontendDir = join(__dirname, 'frontend');
+const distDir = join(__dirname, 'dist');
 const templatesDir = join(rootDir, 'templates');
 const playablesDir = join(rootDir, 'my-playables');
+const isDev = process.env.NODE_ENV !== 'production';
+let viteServer = null;
 
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -695,7 +698,8 @@ async function buildPlayable(slug, payload) {
 async function serveStatic(req, res) {
   const requestUrl = new URL(req.url, 'http://127.0.0.1');
   const pathname = requestUrl.pathname === '/' ? '/index.html' : requestUrl.pathname;
-  const filePath = safeJoin(publicDir, decodeURIComponent(pathname.replace(/^\/+/, '')));
+  const requestedPath = decodeURIComponent(pathname.replace(/^\/+/, ''));
+  let filePath = safeJoin(distDir, requestedPath);
 
   try {
     const fileStats = await stat(filePath);
@@ -708,7 +712,18 @@ async function serveStatic(req, res) {
     res.writeHead(200, { 'content-type': contentTypes[ext] || 'application/octet-stream' });
     res.end(await readFile(filePath));
   } catch {
-    sendText(res, 404, 'Not found');
+    if (extname(requestedPath)) {
+      sendText(res, 404, 'Not found');
+      return;
+    }
+
+    filePath = join(distDir, 'index.html');
+    try {
+      res.writeHead(200, { 'content-type': contentTypes['.html'] });
+      res.end(await readFile(filePath));
+    } catch {
+      sendText(res, 404, 'Frontend build not found. Run npm run build or use npm run dev.');
+    }
   }
 }
 
@@ -810,6 +825,10 @@ async function requestHandler(req, res) {
       await serveGenerated(req, res);
       return;
     }
+    if (viteServer) {
+      viteServer.middlewares(req, res, () => sendText(res, 404, 'Not found'));
+      return;
+    }
     await serveStatic(req, res);
   } catch (error) {
     sendJson(res, 500, { error: error.message || 'Unexpected server error.' });
@@ -819,13 +838,23 @@ async function requestHandler(req, res) {
 const appPort = Number(process.env.PORT || 3000);
 await mkdir(playablesDir, { recursive: true });
 
-const server = createServer(requestHandler);
+if (isDev) {
+  const { createServer: createViteServer } = await import('vite');
+  viteServer = await createViteServer({
+    configFile: join(rootDir, 'vite.config.ts'),
+    server: { middlewareMode: true },
+    appType: 'spa'
+  });
+}
+
+const server = createHttpServer(requestHandler);
 server.listen(appPort, '127.0.0.1', () => {
   console.log(`Playable Lab running at http://127.0.0.1:${appPort}`);
 });
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
-  process.on(signal, () => {
+  process.on(signal, async () => {
+    if (viteServer) await viteServer.close();
     server.close();
     process.exit(0);
   });
