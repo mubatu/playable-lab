@@ -21,17 +21,17 @@ export const GAME_CONFIG = {
   },
   grid: {
     // Number of object rows in the board.
-    rows: 5,
+    rows: 7,
     // Number of object columns in the board.
-    columns: 5,
+    columns: 6,
     // Distance from the top of the stage to the top edge of the centered grid panel.
     top: 600,
     // Inner spacing between the panel edge and the first/last object centers.
     padding: 10,
     // Horizontal spacing between neighboring object cells.
-    gapX: 18,
+    gapX: 10,
     // Vertical spacing between neighboring object cells.
-    gapY: 18,
+    gapY: 10,
     // Corner radius of the single rounded grid panel.
     panelRadius: 34,
     // Fill color of the grid panel behind all objects.
@@ -43,9 +43,9 @@ export const GAME_CONFIG = {
     // Drop shadow color for the grid panel.
     panelShadowColor: 'rgba(0, 0, 0, 0.2)',
     // Render size of each object in game-world pixels.
-    objectSize: 150,
+    objectSize: 120,
     // Falling speed for objects after a blast, in game-world pixels per second.
-    fallSpeed: 700,
+    fallSpeed: 800,
     // Probability that newly generated objects use the target object.
     targetSpawnChance: 0.2,
     // Minimum number of target objects kept on the board after generation or refill.
@@ -108,7 +108,7 @@ export const GAME_CONFIG = {
     },
     instruction: {
       // Top offset for the instruction text in CSS pixels.
-      top: 200,
+      top: 170,
       // Instruction text size in CSS pixels.
       fontSize: 30,
       // Instruction text color.
@@ -126,7 +126,7 @@ export const GAME_CONFIG = {
       // Button text size in CSS pixels.
       fontSize: 26,
       // Button center Y position as a percentage of screen height.
-      centerYPercent: 90,
+      centerYPercent: 85,
       // Button background color.
       backgroundColor: '#003678',
       // Button text color.
