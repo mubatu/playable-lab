@@ -12,7 +12,7 @@ export const GAME_CONFIG = {
   gameplay: {
     // Total game duration before the game ends.
     durationSeconds: 120,
-    // Zero-based index of the object shown in the HUD as the target. `0` uses `object-1.png`.
+    // Zero-based index of the object shown in the HUD as the target. `0` uses `object-1.png`; values are clamped to available objects.
     targetObjectIndex: 0,
     // Number of target objects the player needs to blast before the game ends.
     targetCount: 20,
@@ -45,7 +45,7 @@ export const GAME_CONFIG = {
     // Render size of each object in game-world pixels.
     objectSize: 150,
     // Falling speed for objects after a blast, in game-world pixels per second.
-    fallSpeed: 720,
+    fallSpeed: 700,
     // Probability that newly generated objects use the target object.
     targetSpawnChance: 0.2,
     // Minimum number of target objects kept on the board after generation or refill.

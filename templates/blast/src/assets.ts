@@ -1,17 +1,12 @@
-import background from './assets/background.png';
-import endBackground from './assets/end-background.png';
-import object1 from './assets/object-1.png';
-import object2 from './assets/object-2.png';
-import object3 from './assets/object-3.png';
-import object4 from './assets/object-4.png';
-import object5 from './assets/object-5.png';
 import soundtrack from './assets/soundtrack.mp3';
 import blast from './assets/blast.mp3';
 
+const imageContext = require.context('./assets', false, /\.png$/);
+
 export const imageSources = {
-  background,
-  endBackground,
-  objects: [object1, object2, object3, object4, object5]
+  background: getRequiredImageSource('background.png'),
+  endBackground: getImageSource('end-background.png') ?? getRequiredImageSource('background.png'),
+  objects: getSortedObjectSources()
 };
 
 export const audioSources = {
@@ -35,6 +30,10 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 export async function loadImages(): Promise<LoadedImages> {
+  if (imageSources.objects.length === 0) {
+    throw new Error('Blast template requires at least one object image matching src/assets/object-{index}.png');
+  }
+
   const [backgroundImage, endBackgroundImage, ...objectImages] = await Promise.all([
     loadImage(imageSources.background),
     loadImage(imageSources.endBackground),
@@ -46,4 +45,41 @@ export async function loadImages(): Promise<LoadedImages> {
     endBackground: endBackgroundImage,
     objects: objectImages
   };
+}
+
+function getSortedObjectSources(): string[] {
+  return imageContext.keys()
+    .filter((path) => /^\.\/object-\d+\.png$/.test(path))
+    .sort((pathA, pathB) => getObjectIndex(pathA) - getObjectIndex(pathB))
+    .map((path) => normalizeImageModule(imageContext(path)));
+}
+
+function getImageSource(fileName: string): string | null {
+  const key = `./${fileName}`;
+
+  if (!imageContext.keys().includes(key)) {
+    return null;
+  }
+
+  return normalizeImageModule(imageContext(key));
+}
+
+function getRequiredImageSource(fileName: string): string {
+  const source = getImageSource(fileName);
+
+  if (!source) {
+    throw new Error(`Blast template requires src/assets/${fileName}`);
+  }
+
+  return source;
+}
+
+function normalizeImageModule(module: string | { default: string }): string {
+  return typeof module === 'string' ? module : module.default;
+}
+
+function getObjectIndex(path: string): number {
+  const match = path.match(/object-(\d+)\.png$/);
+
+  return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
 }

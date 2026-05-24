@@ -63,7 +63,7 @@
       "type": "number",
       "default": 0,
       "min": 0,
-      "max": 4,
+      "max": 99,
       "step": 1
     },
     {
@@ -151,7 +151,7 @@
       "path": "grid.fallSpeed",
       "label": "Object Fall Speed",
       "type": "number",
-      "default": 720,
+      "default": 700,
       "min": 500,
       "max": 8000,
       "step": 100,

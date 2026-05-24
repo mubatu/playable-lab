@@ -65,7 +65,7 @@ export class Hud {
 
   private getTargetImageSource(): string {
     const targetIndex = Math.max(0, Math.min(imageSources.objects.length - 1, GAME_CONFIG.gameplay.targetObjectIndex));
-    return imageSources.objects[targetIndex];
+    return imageSources.objects[targetIndex] ?? '';
   }
 
   private applyConfig(): void {
