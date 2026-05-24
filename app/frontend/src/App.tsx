@@ -555,7 +555,7 @@ function Button({
   type = 'button'
 }: {
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'danger';
+  variant?: 'primary' | 'secondary' | 'accent' | 'danger';
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
@@ -569,6 +569,7 @@ function Button({
         'inline-flex min-h-10 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-55',
         variant === 'primary' && 'border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800',
         variant === 'secondary' && 'border-zinc-300 bg-white text-zinc-800 hover:border-zinc-400 hover:bg-zinc-50',
+        variant === 'accent' && 'border-amber-500 bg-amber-500 text-zinc-950 hover:border-amber-400 hover:bg-amber-400',
         variant === 'danger' && 'border-red-200 bg-white text-red-700 hover:bg-red-50'
       )}
     >
@@ -708,7 +709,7 @@ function PlayablesWorkspace({
                   {loading.preview ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
                   Preview
                 </Button>
-                <Button variant="secondary" onClick={onBuild} disabled={loading.build}>
+                <Button variant="accent" onClick={onBuild} disabled={loading.build}>
                   {loading.build ? <Loader2 className="size-4 animate-spin" /> : <Hammer className="size-4" />}
                   Build
                 </Button>
@@ -1069,7 +1070,7 @@ function BuildModal({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-zinc-950/60 p-4">
-      <form onSubmit={(event) => void handleBuild(event)} className="grid max-h-[min(860px,calc(100vh-32px))] w-full max-w-5xl overflow-hidden rounded-md border border-zinc-300 bg-white text-zinc-950 shadow-2xl">
+      <form onSubmit={(event) => void handleBuild(event)} className="grid max-h-[min(860px,calc(100dvh-32px))] w-full max-w-5xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-md border border-zinc-300 bg-white text-zinc-950 shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-zinc-200 px-5 py-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">Build</p>
@@ -1080,7 +1081,7 @@ function BuildModal({
           </button>
         </div>
 
-        <div className="grid gap-6 overflow-auto p-5">
+        <div className="grid min-h-0 gap-6 overflow-y-auto p-5">
           <section>
             <SectionHeading title="Build Parameters" />
             <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -1165,7 +1166,7 @@ function BuildModal({
           <Button variant="secondary" onClick={onClose} disabled={building}>
             Cancel
           </Button>
-          <Button type="submit" disabled={building}>
+          <Button variant="accent" type="submit" disabled={building}>
             {building ? <Loader2 className="size-4 animate-spin" /> : <Hammer className="size-4" />}
             Build
           </Button>
