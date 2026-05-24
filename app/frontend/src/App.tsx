@@ -2,11 +2,14 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   Boxes,
+  CalendarDays,
   CheckCircle2,
   ChevronRight,
+  ExternalLink,
   FileArchive,
   FolderOpen,
   Hammer,
+  LayoutTemplate,
   Loader2,
   Play,
   Plus,
@@ -552,21 +555,27 @@ function Button({
   variant = 'primary',
   disabled,
   onClick,
-  type = 'button'
+  type = 'button',
+  ariaLabel,
+  iconOnly
 }: {
   children: React.ReactNode;
   variant?: 'primary' | 'secondary' | 'accent' | 'danger';
   disabled?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
+  ariaLabel?: string;
+  iconOnly?: boolean;
 }) {
   return (
     <button
       type={type}
       disabled={disabled}
       onClick={onClick}
+      aria-label={ariaLabel}
       className={cx(
-        'inline-flex min-h-10 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-55',
+        'inline-flex min-h-10 items-center justify-center gap-2 rounded-md border text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-55',
+        iconOnly ? 'size-10 px-0' : 'px-4',
         variant === 'primary' && 'border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800',
         variant === 'secondary' && 'border-zinc-300 bg-white text-zinc-800 hover:border-zinc-400 hover:bg-zinc-50',
         variant === 'accent' && 'border-amber-500 bg-amber-500 text-zinc-950 hover:border-amber-400 hover:bg-amber-400',
@@ -660,10 +669,6 @@ function PlayablesWorkspace({
   return (
     <section className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
       <div className="rounded-md border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 px-4 py-3">
-          <p className="text-sm font-semibold text-zinc-950">Saved playables</p>
-          <p className="mt-1 text-xs text-zinc-500">Newest projects appear first.</p>
-        </div>
         <div className="grid max-h-[calc(100vh-230px)] gap-2 overflow-auto p-3">
           {playables.map((playable) => (
             <button
@@ -680,9 +685,6 @@ function PlayablesWorkspace({
               <span className="flex items-start justify-between gap-3">
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-semibold text-zinc-950">{playable.name}</span>
-                  <span className="mt-1 block truncate text-xs text-zinc-500">
-                    {playable.templateName || playable.templateId} · {formatDate(playable.createdAt)}
-                  </span>
                 </span>
                 <ChevronRight className="mt-0.5 size-4 shrink-0 text-zinc-400 transition group-hover:translate-x-0.5" />
               </span>
@@ -694,25 +696,29 @@ function PlayablesWorkspace({
       <div className="min-w-0 rounded-md border border-zinc-200 bg-white">
         {selectedPlayable ? (
           <div className="p-5">
-            <div className="flex flex-col gap-4 border-b border-zinc-200 pb-5 md:flex-row md:items-start md:justify-between">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">Selected playable</p>
-                <h2 className="mt-2 truncate text-2xl font-semibold text-zinc-950">{selectedPlayable.name}</h2>
-                <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-                  <MetaItem label="Folder" value={`my-playables/${selectedPlayable.slug}`} />
-                  <MetaItem label="Template" value={selectedPlayable.templateName || selectedPlayable.templateId} />
-                  <MetaItem label="Created" value={formatDate(selectedPlayable.createdAt)} />
-                </dl>
+            <div className="border-b border-zinc-200 pb-5">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
+                  <h2 className="truncate text-2xl font-semibold text-zinc-950">{selectedPlayable.name}</h2>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={onPreview} disabled={loading.preview}>
+                    {loading.preview ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
+                    Preview
+                  </Button>
+                  <Button variant="accent" onClick={onBuild} disabled={loading.build}>
+                    {loading.build ? <Loader2 className="size-4 animate-spin" /> : <Hammer className="size-4" />}
+                    Build
+                  </Button>
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={onPreview} disabled={loading.preview}>
-                  {loading.preview ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
-                  Preview
-                </Button>
-                <Button variant="accent" onClick={onBuild} disabled={loading.build}>
-                  {loading.build ? <Loader2 className="size-4 animate-spin" /> : <Hammer className="size-4" />}
-                  Build
-                </Button>
+
+              <div>
+                <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+                  <MetaItem icon={<FolderOpen className="size-4" />} label="Folder" value={`my-playables/${selectedPlayable.slug}`} />
+                  <MetaItem icon={<LayoutTemplate className="size-4" />} label="Template" value={selectedPlayable.templateName || selectedPlayable.templateId} />
+                  <MetaItem icon={<CalendarDays className="size-4" />} label="Created" value={formatDate(selectedPlayable.createdAt)} />
+                </dl>
               </div>
             </div>
 
@@ -734,11 +740,14 @@ function PlayablesWorkspace({
   );
 }
 
-function MetaItem({ label, value }: { label: string; value: string }) {
+function MetaItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="min-w-0 rounded-md border border-zinc-200 bg-zinc-50 p-3">
-      <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">{label}</dt>
-      <dd className="mt-1 break-words text-sm text-zinc-900">{value}</dd>
+      <dt className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+        <span className="grid size-7 shrink-0 place-items-center rounded-md bg-white text-emerald-700 ring-1 ring-zinc-200">{icon}</span>
+        {label}
+      </dt>
+      <dd className="mt-2 break-words text-sm text-zinc-900">{value}</dd>
     </div>
   );
 }
@@ -788,13 +797,17 @@ function BuildArtifactList({
           </div>
           <div className="flex gap-2 md:justify-end">
             {build.canOpen && build.url ? (
-              <Button variant="secondary" onClick={() => window.open(new URL(build.url || '', window.location.origin).href, '_blank', 'noopener,noreferrer')}>
-                Open
+              <Button
+                variant="secondary"
+                iconOnly
+                ariaLabel={`Open ${build.name}`}
+                onClick={() => window.open(new URL(build.url || '', window.location.origin).href, '_blank', 'noopener,noreferrer')}
+              >
+                <ExternalLink className="size-4" />
               </Button>
             ) : null}
-            <Button variant="danger" onClick={() => onDelete(build.path)}>
+            <Button variant="danger" iconOnly ariaLabel={`Delete ${build.name}`} onClick={() => onDelete(build.path)}>
               <Trash2 className="size-4" />
-              Delete
             </Button>
           </div>
         </div>
