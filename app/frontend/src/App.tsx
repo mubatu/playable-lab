@@ -456,17 +456,8 @@ export default function App() {
                     <RefreshCw className={cx('size-4', loading.playables && 'animate-spin')} />
                     Refresh
                   </Button>
-                  <Button onClick={() => setView('create')}>
-                    <Plus className="size-4" />
-                    New Playable
-                  </Button>
                 </div>
-              ) : (
-                <Button variant="secondary" onClick={() => setView('playables')}>
-                  <FolderOpen className="size-4" />
-                  My Playables
-                </Button>
-              )}
+              ) : null}
             </header>
 
             <NoticeBanner notice={notice} onDismiss={() => setNotice(null)} />
@@ -485,7 +476,6 @@ export default function App() {
                 onCreate={() => setView('create')}
                 onPreview={() => void handlePreview()}
                 onBuild={() => void handleOpenBuildDialog()}
-                onRefreshBuilds={() => void refreshBuilds()}
                 onDeleteBuild={(path) => void handleDeleteBuild(path)}
               />
             ) : (
@@ -632,7 +622,6 @@ function PlayablesWorkspace({
   onCreate,
   onPreview,
   onBuild,
-  onRefreshBuilds,
   onDeleteBuild
 }: {
   playables: Playable[];
@@ -645,7 +634,6 @@ function PlayablesWorkspace({
   onCreate: () => void;
   onPreview: () => void;
   onBuild: () => void;
-  onRefreshBuilds: () => void;
   onDeleteBuild: (path: string) => void;
 }) {
   if (playables.length === 0) {
@@ -731,12 +719,8 @@ function PlayablesWorkspace({
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-semibold text-zinc-950">Build artifacts</h3>
-                  <p className="mt-1 text-sm text-zinc-500">Files generated under {buildsOutputDir || 'the build output folder'}.</p>
+                  <p className="mt-1 text-sm text-zinc-500">Files generated under {buildsOutputDir || 'the build output'} folder.</p>
                 </div>
-                <Button variant="secondary" onClick={onRefreshBuilds} disabled={loading.builds}>
-                  <RefreshCw className={cx('size-4', loading.builds && 'animate-spin')} />
-                  Refresh
-                </Button>
               </div>
               <BuildArtifactList builds={builds} outputDir={buildsOutputDir} loading={loading.builds} onDelete={onDeleteBuild} />
             </div>
@@ -797,7 +781,7 @@ function BuildArtifactList({
             <div className="min-w-0">
               <p className="break-words text-sm font-semibold text-zinc-950">{build.name}</p>
               <p className="mt-1 break-words text-xs leading-5 text-zinc-500">
-                {build.path} · {formatBytes(build.size)} · {formatDate(build.updatedAt)}
+                {formatBytes(build.size)} · {formatDate(build.updatedAt)}
               </p>
             </div>
           </div>
