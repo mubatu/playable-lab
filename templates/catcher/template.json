@@ -81,10 +81,47 @@
   ],
   "config": [
     {
+      "path": "stage.width",
+      "label": "Stage Width",
+      "type": "number",
+      "description": "Internal game-world width in pixels. The game logic and drawing use this coordinate system.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "stage.height",
+      "label": "Stage Height",
+      "type": "number",
+      "description": "Internal game-world height in pixels.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "stage.portraitRatio",
+      "label": "Stage Portrait Ratio",
+      "type": "number",
+      "description": "Width divided by height. For `1080 / 1920`, this is a 9:16 portrait layout.",
+      "min": 0.1,
+      "max": 2,
+      "step": 0.01,
+      "advanced": true
+    },
+    {
+      "path": "stage.backgroundFill",
+      "label": "Stage Background Fill",
+      "type": "color",
+      "description": "Fallback canvas color shown behind the background image, useful when the viewport crops outside the stage.",
+      "advanced": true
+    },
+    {
       "path": "gameplay.durationSeconds",
       "label": "Duration",
       "type": "number",
-      "default": 30,
+      "description": "Total game duration before the game ends.",
       "min": 5,
       "max": 90,
       "step": 1
@@ -93,25 +130,16 @@
       "path": "gameplay.targetScore",
       "label": "Target Score",
       "type": "number",
-      "default": 10,
+      "description": "Score goal shown as `score/targetScore`. Reaching this score ends the game early.",
       "min": 1,
       "max": 50,
       "step": 1
     },
     {
-      "path": "gameplay.trapChance",
-      "label": "Trap Chance",
-      "type": "number",
-      "default": 0.28,
-      "min": 0,
-      "max": 1,
-      "step": 0.01
-    },
-    {
       "path": "gameplay.spawnIntervalMs",
       "label": "Spawn Interval",
       "type": "number",
-      "default": 360,
+      "description": "Initial delay between falling item spawns.",
       "min": 100,
       "max": 2000,
       "step": 10,
@@ -121,17 +149,281 @@
       "path": "gameplay.minSpawnIntervalMs",
       "label": "Minimum Spawn Interval",
       "type": "number",
-      "default": 120,
+      "description": "Fastest spawn delay after difficulty ramps up.",
       "min": 50,
       "max": 1000,
       "step": 10,
       "advanced": true
     },
     {
+      "path": "gameplay.spawnRampDurationSeconds",
+      "label": "Spawn Ramp Duration",
+      "type": "number",
+      "description": "How long it takes for spawn rate and speed difficulty to reach their maximum ramp.",
+      "min": 0,
+      "max": 120,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "gameplay.trapChance",
+      "label": "Trap Chance",
+      "type": "number",
+      "description": "Probability that a spawned item is a trap. `0.28` means 28%.",
+      "min": 0,
+      "max": 1,
+      "step": 0.01
+    },
+    {
+      "path": "gameplay.maxActiveItems",
+      "label": "Maximum Active Items",
+      "type": "number",
+      "description": "Maximum number of falling items allowed on screen at once.",
+      "min": 1,
+      "max": 20,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "basket.width",
+      "label": "Basket Width",
+      "type": "number",
+      "description": "Basket render width in game-world pixels.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "basket.height",
+      "label": "Basket Height",
+      "type": "number",
+      "description": "Basket render height.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "basket.bottomOffset",
+      "label": "Basket Bottom Offset",
+      "type": "number",
+      "description": "Distance from the bottom of the stage to the bottom area positioning the basket.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "basket.collisionInsetX",
+      "label": "Basket Collision Inset X",
+      "type": "number",
+      "description": "Shrinks the basket collision box from left and right, so catches feel closer to the visible basket shape.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "basket.collisionInsetTop",
+      "label": "Basket Collision Inset Top",
+      "type": "number",
+      "description": "Moves the basket collision area downward from the top.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "basket.collisionInsetBottom",
+      "label": "Basket Collision Inset Bottom",
+      "type": "number",
+      "description": "Shrinks the collision area from the bottom.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "basket.followLerp",
+      "label": "Basket Follow Lerp",
+      "type": "number",
+      "description": "How quickly the basket follows pointer movement. Higher values feel snappier; lower values feel smoother.",
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "advanced": true
+    },
+    {
+      "path": "basket.tutorialHand.enabled",
+      "label": "Tutorial Hand Enabled",
+      "type": "boolean",
+      "description": "Whether the hand tutorial appears before the first basket touch.",
+      "advanced": true
+    },
+    {
+      "path": "basket.tutorialHand.width",
+      "label": "Tutorial Hand Width",
+      "type": "number",
+      "description": "Hand render width in game-world pixels.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "basket.tutorialHand.height",
+      "label": "Tutorial Hand Height",
+      "type": "number",
+      "description": "Hand render height in game-world pixels.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "basket.tutorialHand.offsetY",
+      "label": "Tutorial Hand Y Offset",
+      "type": "number",
+      "description": "Hand Y offset from the basket center in game-world pixels.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "basket.tutorialHand.moveDistance",
+      "label": "Tutorial Hand Move Distance",
+      "type": "number",
+      "description": "Horizontal motion distance around the basket center in game-world pixels.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "basket.tutorialHand.bobDistance",
+      "label": "Tutorial Hand Bob Distance",
+      "type": "number",
+      "description": "Vertical bob distance in game-world pixels.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "basket.tutorialHand.cycleDurationMs",
+      "label": "Tutorial Hand Cycle Duration (ms)",
+      "type": "number",
+      "description": "Duration of one tutorial motion cycle in milliseconds.",
+      "min": 0,
+      "max": 5000,
+      "step": 10,
+      "advanced": true
+    },
+    {
+      "path": "basket.tutorialHand.opacity",
+      "label": "Tutorial Hand Opacity",
+      "type": "number",
+      "description": "Hand opacity.",
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "advanced": true
+    },
+    {
+      "path": "basket.feedback.durationMs",
+      "label": "Feedback Duration (ms)",
+      "type": "number",
+      "description": "How long the catch feedback stays visible in milliseconds.",
+      "min": 0,
+      "max": 5000,
+      "step": 10,
+      "advanced": true
+    },
+    {
+      "path": "basket.feedback.textSize",
+      "label": "Feedback Text Size",
+      "type": "number",
+      "description": "Text size for +1/-1 feedback in game-world pixels.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "basket.feedback.textRise",
+      "label": "Feedback Text Rise",
+      "type": "number",
+      "description": "How far the +1/-1 text floats upward during the effect.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "basket.feedback.targetTextColor",
+      "label": "Target Feedback Text Color",
+      "type": "color",
+      "description": "Target catch text color.",
+      "advanced": true
+    },
+    {
+      "path": "basket.feedback.trapTextColor",
+      "label": "Trap Feedback Text Color",
+      "type": "color",
+      "description": "Bomb catch text color.",
+      "advanced": true
+    },
+    {
+      "path": "basket.feedback.targetGlowColor",
+      "label": "Target Glow Color",
+      "type": "color",
+      "description": "Target catch basket glow color.",
+      "advanced": true
+    },
+    {
+      "path": "basket.feedback.trapGlowColor",
+      "label": "Trap Glow Color",
+      "type": "color",
+      "description": "Bomb catch basket glow color.",
+      "advanced": true
+    },
+    {
+      "path": "basket.feedback.glowBlur",
+      "label": "Feedback Glow Blur",
+      "type": "number",
+      "description": "Outer glow blur around the basket.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "basket.feedback.rippleRadius",
+      "label": "Feedback Ripple Radius",
+      "type": "number",
+      "description": "Ripple circle size at the center of the basket.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "basket.feedback.sparkleCount",
+      "label": "Feedback Sparkle Count",
+      "type": "number",
+      "description": "Number of sparkles shown around the basket for a target catch.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
       "path": "fallingItem.size",
       "label": "Item Size",
       "type": "number",
-      "default": 150,
+      "description": "Render size of targets and traps.",
       "min": 64,
       "max": 320,
       "step": 1
@@ -140,7 +432,7 @@
       "path": "fallingItem.minSpeed",
       "label": "Minimum Fall Speed",
       "type": "number",
-      "default": 1600,
+      "description": "Minimum falling speed.",
       "min": 400,
       "max": 3200,
       "step": 25,
@@ -150,23 +442,302 @@
       "path": "fallingItem.maxSpeed",
       "label": "Maximum Fall Speed",
       "type": "number",
-      "default": 1800,
+      "description": "Maximum falling speed.",
       "min": 400,
       "max": 3600,
       "step": 25,
       "advanced": true
     },
     {
+      "path": "fallingItem.speedRamp",
+      "label": "Speed Ramp",
+      "type": "number",
+      "description": "Extra speed added as difficulty ramps up.",
+      "min": 0,
+      "max": 2000,
+      "step": 25,
+      "advanced": true
+    },
+    {
+      "path": "fallingItem.spawnTopOffset",
+      "label": "Spawn Top Offset",
+      "type": "number",
+      "description": "Starting Y position above the visible stage.",
+      "min": -500,
+      "max": 500,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "fallingItem.horizontalPadding",
+      "label": "Horizontal Padding",
+      "type": "number",
+      "description": "Keeps spawned items away from the left and right edges.",
+      "min": 0,
+      "max": 540,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "fallingItem.spawnRotationAngle",
+      "label": "Spawn Rotation Angle",
+      "type": "number",
+      "description": "Maximum random starting rotation in degrees. `0` means items spawn upright.",
+      "min": 0,
+      "max": 360,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "fallingItem.rotationSpeedMin",
+      "label": "Minimum Rotation Speed",
+      "type": "number",
+      "description": "Slowest counter-clockwise rotation speed.",
+      "min": -720,
+      "max": 720,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "fallingItem.rotationSpeedMax",
+      "label": "Maximum Rotation Speed",
+      "type": "number",
+      "description": "Fastest clockwise rotation speed.",
+      "min": -720,
+      "max": 720,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "audio.soundtrackVolume",
+      "label": "Soundtrack Volume",
+      "type": "number",
+      "description": "Background music volume multiplier.",
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "advanced": true
+    },
+    {
+      "path": "audio.effectVolume",
+      "label": "Effect Volume",
+      "type": "number",
+      "description": "Catch sound effect volume multiplier.",
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "advanced": true
+    },
+    {
+      "path": "ui.lowTimeWarningSeconds",
+      "label": "Low Time Warning Seconds",
+      "type": "number",
+      "description": "When remaining time is at or below this value, the timer HUD switches to warning color.",
+      "min": 0,
+      "max": 200,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.top",
+      "label": "HUD Top",
+      "type": "number",
+      "description": "Top offset from the safe-area top in CSS pixels.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.widthVw",
+      "label": "HUD Width (vw)",
+      "type": "number",
+      "description": "HUD width as a percentage of viewport width.",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.maxWidth",
+      "label": "HUD Max Width",
+      "type": "number",
+      "description": "Maximum HUD width in CSS pixels.",
+      "min": 0,
+      "max": 1200,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.gap",
+      "label": "HUD Gap",
+      "type": "number",
+      "description": "Gap between timer and progress bar in CSS pixels.",
+      "min": 0,
+      "max": 120,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.timeFontSize",
+      "label": "HUD Timer Font Size",
+      "type": "number",
+      "description": "Timer text size in CSS pixels.",
+      "min": 0,
+      "max": 120,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.timeColor",
+      "label": "HUD Timer Color",
+      "type": "color",
+      "description": "Timer text color.",
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.timeWarningColor",
+      "label": "HUD Timer Warning Color",
+      "type": "color",
+      "description": "Timer warning color when time is low.",
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.progressHeight",
+      "label": "Progress Bar Height",
+      "type": "number",
+      "description": "Progress bar height in CSS pixels.",
+      "min": 0,
+      "max": 160,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.progressBorderWidth",
+      "label": "Progress Bar Border Width",
+      "type": "number",
+      "description": "Progress bar border width in CSS pixels.",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.progressBorderColor",
+      "label": "Progress Bar Border Color",
+      "type": "string",
+      "description": "Progress bar border color.",
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.progressBackgroundColor",
+      "label": "Progress Bar Background Color",
+      "type": "color",
+      "description": "Progress bar background color.",
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.progressFillColor",
+      "label": "Progress Bar Fill Color",
+      "type": "color",
+      "description": "Progress bar fill color.",
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.progressFontSize",
+      "label": "Progress Label Font Size",
+      "type": "number",
+      "description": "Progress label text size in CSS pixels.",
+      "min": 0,
+      "max": 120,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.progressTextColor",
+      "label": "Progress Label Text Color",
+      "type": "color",
+      "description": "Progress label text color.",
+      "advanced": true
+    },
+    {
       "path": "ui.endButton.text",
       "label": "End Button Text",
       "type": "string",
-      "default": "EXPLORE"
+      "description": "Text shown on the end screen CTA button."
+    },
+    {
+      "path": "ui.endButton.width",
+      "label": "End Button Width",
+      "type": "number",
+      "description": "Button width in CSS pixels.",
+      "min": 0,
+      "max": 600,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "ui.endButton.height",
+      "label": "End Button Height",
+      "type": "number",
+      "description": "Button height in CSS pixels.",
+      "min": 0,
+      "max": 240,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "ui.endButton.fontSize",
+      "label": "End Button Font Size",
+      "type": "number",
+      "description": "Button text size in CSS pixels.",
+      "min": 0,
+      "max": 120,
+      "step": 1,
+      "advanced": true
+    },
+    {
+      "path": "ui.endButton.centerYPercent",
+      "label": "End Button Center Y Percent",
+      "type": "number",
+      "description": "Button center Y position as a percentage of screen height.",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "advanced": true
     },
     {
       "path": "ui.endButton.backgroundColor",
       "label": "End Button Color",
       "type": "color",
-      "default": "#f04f23"
+      "description": "Button background color."
+    },
+    {
+      "path": "ui.endButton.textColor",
+      "label": "End Button Text Color",
+      "type": "color",
+      "description": "Button text color.",
+      "advanced": true
+    },
+    {
+      "path": "ui.endButton.pulseScale",
+      "label": "End Button Pulse Scale",
+      "type": "number",
+      "description": "Largest scale used by the repeating big-small button effect.",
+      "min": 0.5,
+      "max": 2,
+      "step": 0.01,
+      "advanced": true
+    },
+    {
+      "path": "ui.endButton.pulseDurationMs",
+      "label": "End Button Pulse Duration (ms)",
+      "type": "number",
+      "description": "Duration of one big-small animation cycle in milliseconds.",
+      "min": 0,
+      "max": 5000,
+      "step": 10,
+      "advanced": true
     }
   ]
 }

@@ -224,6 +224,24 @@ function makeFieldWrapper(field) {
   return wrapper;
 }
 
+function appendFieldDescription(wrapper, field) {
+  if (!field.description) return;
+  const hint = document.createElement('span');
+  hint.className = 'hint';
+  hint.textContent = field.description;
+  wrapper.append(hint);
+}
+
+function cloneConfigValue(value) {
+  if (Array.isArray(value)) return [...value];
+  return value;
+}
+
+function formatConfigValue(field, value) {
+  if (field.type === 'array') return JSON.stringify(value ?? []);
+  return value ?? '';
+}
+
 function renderAssetField(asset) {
   const wrapper = makeFieldWrapper(asset);
   const input = document.createElement('input');
@@ -265,6 +283,7 @@ function renderConfigField(field) {
       state.configValues[field.path] = input.checked;
     });
     wrapper.append(input);
+    appendFieldDescription(wrapper, field);
     return wrapper;
   }
 
@@ -299,6 +318,7 @@ function renderConfigField(field) {
 
     row.append(range, number);
     wrapper.append(row);
+    appendFieldDescription(wrapper, field);
     return wrapper;
   }
 
@@ -309,11 +329,12 @@ function renderConfigField(field) {
   if (field.type === 'number') {
     input.step = field.step ?? 'any';
   }
-  input.value = value;
+  input.value = formatConfigValue(field, value);
   input.addEventListener('input', () => {
     state.configValues[field.path] = field.type === 'number' ? Number(input.value) : input.value;
   });
   wrapper.append(input);
+  appendFieldDescription(wrapper, field);
 
   return wrapper;
 }
@@ -322,7 +343,7 @@ function resetConfigValues(template) {
   state.configValues = {};
   if (!template) return;
   for (const field of template.config || []) {
-    state.configValues[field.path] = field.default;
+    state.configValues[field.path] = cloneConfigValue(field.default);
   }
 }
 
@@ -393,6 +414,15 @@ function collectConfig(template) {
     if (!input) continue;
     if (field.type === 'number') config[field.path] = Number(input.value);
     else if (field.type === 'boolean') config[field.path] = input.checked;
+    else if (field.type === 'array') {
+      try {
+        const value = JSON.parse(input.value);
+        if (!Array.isArray(value)) throw new Error('Expected an array.');
+        config[field.path] = value;
+      } catch {
+        throw new Error(`${field.label} must be a JSON array.`);
+      }
+    }
     else config[field.path] = input.value;
   }
 

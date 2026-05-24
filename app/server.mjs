@@ -104,13 +104,23 @@ async function getManifest(templateId) {
 
 async function hydrateTemplateManifest(templateId, manifest) {
   const configPath = safeJoin(templatesDir, join(templateId, 'src', 'config.ts'));
-  const config = parseGameConfig(await readFile(configPath, 'utf8'));
-  const existingPaths = new Set((manifest.config || []).map((field) => field.path));
+  const configSource = await readFile(configPath, 'utf8');
+  const config = parseGameConfig(configSource);
+  const descriptions = parseGameConfigDescriptions(configSource);
+  const manifestFields = (manifest.config || []).map((field) => {
+    const defaultValue = getPath(config, field.path);
+    return {
+      ...field,
+      ...(field.description ? {} : { description: descriptions.get(field.path) }),
+      ...(defaultValue === undefined ? {} : { default: defaultValue })
+    };
+  });
+  const existingPaths = new Set(manifestFields.map((field) => field.path));
   const inferredFields = inferConfigFields(config).filter((field) => !existingPaths.has(field.path));
 
   return {
     ...manifest,
-    config: [...(manifest.config || []), ...inferredFields]
+    config: [...manifestFields, ...inferredFields]
   };
 }
 
@@ -139,6 +149,7 @@ function inferConfigField(pathParts, value) {
 
   if (valueType === 'number') type = 'number';
   else if (valueType === 'boolean') type = 'boolean';
+  else if (Array.isArray(value)) type = 'array';
   else if (valueType === 'string' && /^#[0-9a-fA-F]{6}$/.test(value)) type = 'color';
 
   return {
@@ -302,6 +313,15 @@ function findConfigField(manifest, path) {
   return (manifest.config || []).find((field) => field.path === path);
 }
 
+function getPath(target, path) {
+  let cursor = target;
+  for (const part of path.split('.')) {
+    if (!cursor || typeof cursor !== 'object' || !(part in cursor)) return undefined;
+    cursor = cursor[part];
+  }
+  return cursor;
+}
+
 function coerceConfigValue(field, value) {
   if (field.type === 'number') {
     const numberValue = Number(value);
@@ -318,6 +338,17 @@ function coerceConfigValue(field, value) {
       throw new Error(`${field.label} must be a hex color.`);
     }
     return value;
+  }
+
+  if (field.type === 'array') {
+    if (Array.isArray(value)) return value;
+    try {
+      const parsed = JSON.parse(String(value ?? ''));
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // Fall through to the validation error below.
+    }
+    throw new Error(`${field.label} must be a JSON array.`);
   }
 
   return String(value ?? '');
@@ -342,6 +373,44 @@ function parseGameConfig(source) {
 
   const objectLiteral = source.slice(start, end + 1);
   return Function(`"use strict"; return (${objectLiteral});`)();
+}
+
+function parseGameConfigDescriptions(source) {
+  const descriptions = new Map();
+  const stack = [];
+  let pendingComments = [];
+
+  for (const line of source.split(/\r?\n/)) {
+    const commentMatch = line.match(/^\s*\/\/\s?(.*)$/);
+    if (commentMatch) {
+      pendingComments.push(commentMatch[1].trim());
+      continue;
+    }
+
+    const propertyMatch = line.match(/^(\s*)([A-Za-z_$][\w$]*)\s*:\s*(.*)$/);
+    if (!propertyMatch) {
+      if (line.trim() && !line.trim().startsWith('}') && !line.includes('export')) {
+        pendingComments = [];
+      }
+      continue;
+    }
+
+    const [, indentText, key, rest] = propertyMatch;
+    const indent = indentText.length;
+    while (stack.length && stack.at(-1).indent >= indent) stack.pop();
+
+    const path = [...stack.map((item) => item.key), key].join('.');
+    if (pendingComments.length > 0) {
+      descriptions.set(path, pendingComments.join(' '));
+      pendingComments = [];
+    }
+
+    if (rest.trim().startsWith('{')) {
+      stack.push({ key, indent });
+    }
+  }
+
+  return descriptions;
 }
 
 function serializeConfig(config) {
