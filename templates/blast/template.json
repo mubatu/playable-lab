@@ -14,15 +14,6 @@
       "path": "src/assets/background.png"
     },
     {
-      "id": "endBackground",
-      "label": "End Background",
-      "description": "Background shown at the end of the game.",
-      "accept": "image/png",
-      "required": true,
-      "multiple": false,
-      "path": "src/assets/end-background.png"
-    },
-    {
       "id": "objects",
       "label": "Objects",
       "description": "Game objects shown in the blast grid.",
@@ -32,6 +23,15 @@
       "min": 1,
       "directory": "src/assets",
       "filePattern": "object-{index}.png"
+    },
+    {
+      "id": "endBackground",
+      "label": "End Background",
+      "description": "Background shown at the end of the game.",
+      "accept": "image/png",
+      "required": true,
+      "multiple": false,
+      "path": "src/assets/end-background.png"
     },
     {
       "id": "soundtrack",

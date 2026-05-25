@@ -14,15 +14,6 @@
       "path": "src/assets/background.png"
     },
     {
-      "id": "endBackground",
-      "label": "End Background",
-      "description": "Background shown at the end of the game.",
-      "accept": "image/png",
-      "required": true,
-      "multiple": false,
-      "path": "src/assets/end-background.png"
-    },
-    {
       "id": "basket",
       "label": "Basket",
       "description": "Player-controlled catcher object.",
@@ -30,24 +21,6 @@
       "required": false,
       "multiple": false,
       "path": "src/assets/basket.png"
-    },
-    {
-      "id": "bomb",
-      "label": "Bomb",
-      "description": "Obstacle object the player should avoid.",
-      "accept": "image/png",
-      "required": false,
-      "multiple": false,
-      "path": "src/assets/bomb.png"
-    },
-    {
-      "id": "hand",
-      "label": "Tutorial Hand",
-      "description": "Hand indicator used to guide the player.",
-      "accept": "image/png",
-      "required": false,
-      "multiple": false,
-      "path": "src/assets/hand.png"
     },
     {
       "id": "targets",
@@ -59,6 +32,33 @@
       "min": 1,
       "directory": "src/assets",
       "filePattern": "target-{index}.png"
+    },
+    {
+      "id": "bomb",
+      "label": "Bomb",
+      "description": "Obstacle object the player should avoid.",
+      "accept": "image/png",
+      "required": false,
+      "multiple": false,
+      "path": "src/assets/bomb.png"
+    },
+    {
+      "id": "endBackground",
+      "label": "End Background",
+      "description": "Background shown at the end of the game.",
+      "accept": "image/png",
+      "required": true,
+      "multiple": false,
+      "path": "src/assets/end-background.png"
+    },
+    {
+      "id": "hand",
+      "label": "Tutorial Hand",
+      "description": "Hand indicator used to guide the player.",
+      "accept": "image/png",
+      "required": false,
+      "multiple": false,
+      "path": "src/assets/hand.png"
     },
     {
       "id": "soundtrack",
