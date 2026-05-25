@@ -19,6 +19,7 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
+  SlidersHorizontal,
   Sparkles,
   Trash2,
   Video,
@@ -50,6 +51,7 @@ import type {
 } from './types';
 
 type View = 'playables' | 'create';
+type CreateFormTab = 'assets' | 'parameters';
 type Notice = { type: 'info' | 'success' | 'error'; message: string } | null;
 type AssetPreview = { name: string; type: string; url: string; size?: number };
 
@@ -922,8 +924,14 @@ function CreateWorkspace({
   onReset: () => void;
 }) {
   const [step, setStep] = useState<'source' | 'templates' | 'form'>('source');
+  const [activeFormTab, setActiveFormTab] = useState<CreateFormTab>('assets');
   const assets = selectedTemplate?.assets || [];
   const groups = useMemo(() => groupConfigFields(selectedTemplate?.config), [selectedTemplate]);
+  const parameterCount = groups.reduce((count, group) => count + group.fields.length + group.advancedFields.length, 0);
+
+  useEffect(() => {
+    setActiveFormTab(assets.length > 0 ? 'assets' : 'parameters');
+  }, [selectedTemplate?.id, assets.length]);
 
   function openTemplateForm(templateId: string) {
     onSelectTemplate(templateId);
@@ -1015,14 +1023,38 @@ function CreateWorkspace({
             </div>
           </section>
 
-          <AssetSection title="Assets" assets={assets} />
-
           <section>
-            <SectionHeading title="Parameters" description="Standard settings are visible first. Advanced groups stay collapsed." />
-            <div className="mt-4 grid gap-5">
-              {groups.map((group) => (
-                <ParameterSection key={group.path} group={group} values={configValues} onUpdate={onUpdateConfig} />
-              ))}
+            <div className="rounded-md border border-zinc-200 bg-zinc-50 p-1" role="tablist" aria-label="Template setup sections">
+              <div className="grid gap-1 sm:grid-cols-2">
+                <CreateFormTabButton
+                  active={activeFormTab === 'assets'}
+                  icon={<ImageIcon className="size-4" />}
+                  label="Assets"
+                  count={assets.length}
+                  description="Upload creative files"
+                  onClick={() => setActiveFormTab('assets')}
+                />
+                <CreateFormTabButton
+                  active={activeFormTab === 'parameters'}
+                  icon={<SlidersHorizontal className="size-4" />}
+                  label="Parameters"
+                  count={parameterCount}
+                  description="Tune gameplay settings"
+                  onClick={() => setActiveFormTab('parameters')}
+                />
+              </div>
+            </div>
+
+            <div className="mt-5">
+              {activeFormTab === 'assets' ? (
+                <AssetSection assets={assets} />
+              ) : (
+                <div className="grid gap-5">
+                  {groups.map((group) => (
+                    <ParameterSection key={group.path} group={group} values={configValues} onUpdate={onUpdateConfig} />
+                  ))}
+                </div>
+              )}
             </div>
           </section>
         </div>
@@ -1035,6 +1067,46 @@ function CreateWorkspace({
         </div>
       </form>
     </section>
+  );
+}
+
+function CreateFormTabButton({
+  active,
+  icon,
+  label,
+  count,
+  description,
+  onClick
+}: {
+  active: boolean;
+  icon: React.ReactNode;
+  label: string;
+  count: number;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cx(
+        'flex min-h-16 items-center justify-center gap-4 rounded-md px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-100',
+        active
+          ? 'border border-blue-500 bg-blue-50/70 text-blue-700 shadow-sm shadow-blue-900/10'
+          : 'text-zinc-600 hover:bg-white/70 hover:text-zinc-950'
+      )}
+    >
+      <span className={cx('grid size-9 shrink-0 place-items-center rounded-md', active ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-100' : 'bg-white text-zinc-500 ring-1 ring-zinc-200')}>{icon}</span>
+      <span className="min-w-0">
+        <span className="flex items-center gap-2">
+          <span className="text-sm font-semibold">{label}</span>
+          <span className={cx('rounded-md px-1.5 py-0.5 text-xs font-bold ring-1', active ? 'bg-white text-blue-700 ring-blue-200' : 'bg-zinc-200 text-zinc-600 ring-transparent')}>{count}</span>
+        </span>
+        <span className={cx('mt-0.5 block truncate text-xs font-medium', active ? 'text-zinc-600' : 'text-zinc-500')}>{description}</span>
+      </span>
+    </button>
   );
 }
 
@@ -1161,15 +1233,11 @@ function SectionHeading({ title, description }: { title: string; description?: s
   );
 }
 
-function AssetSection({ title, assets }: { title: string; assets: TemplateAsset[] }) {
+function AssetSection({ assets }: { assets: TemplateAsset[] }) {
   if (assets.length === 0) return null;
   return (
     <section>
-      <div>
-        <h3 className="text-3xl font-semibold tracking-tight text-zinc-950">{title}</h3>
-        <p className="mt-1 text-sm font-medium text-zinc-500">Upload and manage the visual assets used in your game.</p>
-      </div>
-      <div className="mt-4 grid gap-5 lg:grid-cols-2 2xl:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-3">
         {assets.map((asset) => (
           <AssetUploadField
             key={asset.id}
