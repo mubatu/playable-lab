@@ -382,8 +382,7 @@ export default function App() {
     return config;
   }
 
-  async function handleCreate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleCreate(playableName: string) {
     if (!selectedTemplate) return;
 
     setLoading((current) => ({ ...current, create: true }));
@@ -391,7 +390,7 @@ export default function App() {
 
     try {
       const playable = await createPlayable(selectedTemplate.id, {
-        name: (formRef.current?.elements.namedItem('playableName') as HTMLInputElement | null)?.value || '',
+        name: playableName,
         assets: await collectAssets(selectedTemplate),
         config: collectConfig(selectedTemplate)
       });
@@ -571,7 +570,7 @@ export default function App() {
                 onSelectTemplate={selectTemplate}
                 onPreviewTemplate={(templateId) => void handlePreviewTemplateDemo(templateId)}
                 onUpdateConfig={updateConfigValue}
-                onSubmit={(event) => void handleCreate(event)}
+                onSubmit={(playableName) => void handleCreate(playableName)}
                 onReset={handleResetCreateForm}
               />
             )}
@@ -920,22 +919,50 @@ function CreateWorkspace({
   onSelectTemplate: (id: string) => void;
   onPreviewTemplate: (id: string) => void;
   onUpdateConfig: (path: string, value: unknown) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onSubmit: (playableName: string) => void;
   onReset: () => void;
 }) {
   const [step, setStep] = useState<'source' | 'templates' | 'form'>('source');
   const [activeFormTab, setActiveFormTab] = useState<CreateFormTab>('assets');
+  const [nameDialogOpen, setNameDialogOpen] = useState(false);
+  const [playableName, setPlayableName] = useState('');
   const assets = selectedTemplate?.assets || [];
   const groups = useMemo(() => groupConfigFields(selectedTemplate?.config), [selectedTemplate]);
   const parameterCount = groups.reduce((count, group) => count + group.fields.length + group.advancedFields.length, 0);
 
   useEffect(() => {
     setActiveFormTab(assets.length > 0 ? 'assets' : 'parameters');
+    setNameDialogOpen(false);
+    setPlayableName('');
   }, [selectedTemplate?.id, assets.length]);
 
   function openTemplateForm(templateId: string) {
     onSelectTemplate(templateId);
     setStep('form');
+  }
+
+  function openNameDialog() {
+    if (!selectedTemplate || loading) return;
+    setNameDialogOpen(true);
+  }
+
+  function handleOpenNameDialog(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    openNameDialog();
+  }
+
+  function handleConfirmCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedName = playableName.trim();
+    if (!trimmedName) return;
+    setNameDialogOpen(false);
+    onSubmit(trimmedName);
+  }
+
+  function handleResetClick() {
+    setNameDialogOpen(false);
+    setPlayableName('');
+    onReset();
   }
 
   if (step === 'source') {
@@ -998,7 +1025,7 @@ function CreateWorkspace({
 
   return (
     <section>
-      <form ref={formRef} onSubmit={onSubmit} className="rounded-md border border-zinc-200 bg-white">
+      <form ref={formRef} noValidate onSubmit={handleOpenNameDialog} className="rounded-md border border-zinc-200 bg-white">
         <div className="flex flex-col gap-3 border-b border-zinc-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
           <div className="flex min-w-0 items-center gap-3">
             <Button variant="secondary" iconOnly ariaLabel="Back to templates" onClick={() => setStep('templates')}>
@@ -1008,21 +1035,13 @@ function CreateWorkspace({
               <h2 className="truncate text-2xl font-semibold text-zinc-950">{selectedTemplate?.name || 'Template'}</h2>
             </div>
           </div>
-          <Button variant="secondary" type="button" onClick={onReset}>
+          <Button variant="secondary" type="button" onClick={handleResetClick}>
             <RotateCcw className="size-4" />
             Reset
           </Button>
         </div>
 
         <div className="grid gap-6 p-5">
-          <section>
-            <div className="grid gap-3">
-              <FieldShell label="Playable Name">
-                <input className="input" id="playableName" name="playableName" type="text" required />
-              </FieldShell>
-            </div>
-          </section>
-
           <section>
             <div className="rounded-md border border-zinc-200 bg-zinc-50 p-1" role="tablist" aria-label="Template setup sections">
               <div className="grid gap-1 sm:grid-cols-2">
@@ -1046,27 +1065,90 @@ function CreateWorkspace({
             </div>
 
             <div className="mt-5">
-              {activeFormTab === 'assets' ? (
+              <div hidden={activeFormTab !== 'assets'}>
                 <AssetSection assets={assets} />
-              ) : (
+              </div>
+              <div hidden={activeFormTab !== 'parameters'}>
                 <div className="grid gap-5">
                   {groups.map((group) => (
                     <ParameterSection key={group.path} group={group} values={configValues} onUpdate={onUpdateConfig} />
                   ))}
                 </div>
-              )}
+              </div>
             </div>
           </section>
         </div>
 
         <div className="flex justify-end border-t border-zinc-200 bg-zinc-50 px-5 py-4">
-          <Button variant="blue" type="submit" disabled={loading || !selectedTemplate}>
+          <Button variant="blue" type="button" disabled={loading || !selectedTemplate} onClick={openNameDialog}>
             {loading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
             Create Playable
           </Button>
         </div>
       </form>
+      {nameDialogOpen ? (
+        <CreateNameDialog
+          value={playableName}
+          loading={loading}
+          onChange={setPlayableName}
+          onClose={() => setNameDialogOpen(false)}
+          onSubmit={handleConfirmCreate}
+        />
+      ) : null}
     </section>
+  );
+}
+
+function CreateNameDialog({
+  value,
+  loading,
+  onChange,
+  onClose,
+  onSubmit
+}: {
+  value: string;
+  loading: boolean;
+  onChange: (value: string) => void;
+  onClose: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-zinc-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="create-name-title" onClick={onClose}>
+      <form className="w-full max-w-md overflow-hidden rounded-md border border-zinc-300 bg-white text-zinc-950 shadow-2xl" onSubmit={onSubmit} onClick={(event) => event.stopPropagation()}>
+        <div className="border-b border-zinc-200 px-5 py-4">
+          <h3 id="create-name-title" className="text-lg font-semibold">Name your playable</h3>
+          <p className="mt-1 text-sm leading-6 text-zinc-500">This creates a new project folder under my-playables.</p>
+        </div>
+        <div className="grid gap-4 p-5">
+          <input
+            ref={inputRef}
+            className="input"
+            id="playableName"
+            name="playableName"
+            type="text"
+            required
+            aria-label="Playable name"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+          />
+        </div>
+        <div className="flex justify-end gap-2 border-t border-zinc-200 bg-zinc-50 px-5 py-4">
+          <Button variant="secondary" type="button" disabled={loading} onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="blue" type="submit" disabled={loading || !value.trim()}>
+            {loading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+            Create Playable
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }
 
