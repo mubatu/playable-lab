@@ -3,6 +3,7 @@ export type FieldType = 'string' | 'number' | 'boolean' | 'array' | 'color';
 export interface TemplateAsset {
   id: string;
   label: string;
+  description?: string;
   accept?: string;
   required?: boolean;
   multiple?: boolean;
@@ -10,6 +11,14 @@ export interface TemplateAsset {
   path?: string;
   directory?: string;
   filePattern?: string;
+  defaultFiles?: TemplateAssetFile[];
+}
+
+export interface TemplateAssetFile {
+  name: string;
+  type: string;
+  size?: number;
+  url: string;
 }
 
 export interface ConfigField {

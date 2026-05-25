@@ -124,7 +124,65 @@ async function hydrateTemplateManifest(templateId, manifest) {
 
   return {
     ...manifest,
+    assets: await hydrateTemplateAssets(templateId, manifest.assets || []),
     config: [...manifestFields, ...inferredFields]
+  };
+}
+
+async function hydrateTemplateAssets(templateId, assets) {
+  const templateDir = safeJoin(templatesDir, templateId);
+
+  return Promise.all(
+    assets.map(async (asset) => ({
+      ...asset,
+      defaultFiles: await listDefaultAssetFiles(templateId, templateDir, asset)
+    }))
+  );
+}
+
+async function listDefaultAssetFiles(templateId, templateDir, asset) {
+  if (asset.path) {
+    const filePath = safeJoin(templateDir, asset.path);
+    if (!(await pathExists(filePath))) return [];
+    const fileStats = await stat(filePath);
+    return [buildTemplateAssetPreview(templateId, asset.path, fileStats.size)];
+  }
+
+  if (!asset.directory || !asset.filePattern) return [];
+
+  const directoryPath = safeJoin(templateDir, asset.directory);
+  if (!(await pathExists(directoryPath))) return [];
+
+  const matcher = assetPatternMatcher(asset.filePattern);
+  const entries = await readdir(directoryPath, { withFileTypes: true });
+  const assetPaths = entries
+    .filter((entry) => entry.isFile() && matcher.test(entry.name))
+    .map((entry) => join(asset.directory, entry.name))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+  return Promise.all(
+    assetPaths.map(async (assetPath) => {
+      const fileStats = await stat(safeJoin(templateDir, assetPath));
+      return buildTemplateAssetPreview(templateId, assetPath, fileStats.size);
+    })
+  );
+}
+
+function assetPatternMatcher(pattern) {
+  const escaped = String(pattern)
+    .replace(/[|\\{}()[\]^$+*?.]/g, '\\$&')
+    .replace('\\{index\\}', '\\d+');
+  return new RegExp(`^${escaped}$`);
+}
+
+function buildTemplateAssetPreview(templateId, assetPath, size) {
+  const name = assetPath.split('/').at(-1) || assetPath;
+  const extension = extname(assetPath).toLowerCase();
+  return {
+    name,
+    type: contentTypes[extension] || 'application/octet-stream',
+    size,
+    url: `/template-assets/${encodeURIComponent(templateId)}/${assetPath.split('/').map(encodeURIComponent).join('/')}`
   };
 }
 
@@ -457,8 +515,10 @@ async function applyAssets(outputDir, manifest, uploads = {}) {
   for (const asset of manifest.assets || []) {
     const uploaded = uploads[asset.id];
     const files = asset.multiple ? uploaded || [] : uploaded ? [uploaded] : [];
-    if (asset.required && files.length === 0) throw new Error(`${asset.label} is required.`);
-    if (asset.min && files.length < asset.min) throw new Error(`${asset.label} needs at least ${asset.min} file(s).`);
+    const defaultFileCount = asset.defaultFiles?.length || 0;
+    const selectedFileCount = files.length || defaultFileCount;
+    if (asset.required && selectedFileCount === 0) throw new Error(`${asset.label} is required.`);
+    if (asset.min && selectedFileCount < asset.min) throw new Error(`${asset.label} needs at least ${asset.min} file(s).`);
 
     written[asset.id] = [];
     for (let index = 0; index < files.length; index += 1) {
@@ -795,6 +855,33 @@ async function serveTemplateDemo(req, res) {
   }
 }
 
+async function serveTemplateAsset(req, res) {
+  const requestUrl = new URL(req.url, 'http://127.0.0.1');
+  const match = requestUrl.pathname.match(/^\/template-assets\/([^/]+)\/(.+)$/);
+  if (!match) {
+    sendText(res, 404, 'Not found');
+    return;
+  }
+
+  const templateId = decodeURIComponent(match[1]);
+  const relativeFilePath = match[2].split('/').map(decodeURIComponent).join('/');
+  const filePath = safeJoin(safeJoin(templatesDir, templateId), relativeFilePath);
+
+  try {
+    const fileStats = await stat(filePath);
+    if (!fileStats.isFile()) {
+      sendText(res, 404, 'Not found');
+      return;
+    }
+
+    const ext = extname(filePath);
+    res.writeHead(200, { 'content-type': contentTypes[ext] || 'application/octet-stream' });
+    res.end(await readFile(filePath));
+  } catch {
+    sendText(res, 404, 'Not found');
+  }
+}
+
 async function handleApi(req, res) {
   const requestUrl = new URL(req.url, 'http://127.0.0.1');
 
@@ -874,6 +961,10 @@ async function requestHandler(req, res) {
     }
     if (req.url.startsWith('/template-demo/')) {
       await serveTemplateDemo(req, res);
+      return;
+    }
+    if (req.url.startsWith('/template-assets/')) {
+      await serveTemplateAsset(req, res);
       return;
     }
     if (viteServer) {
