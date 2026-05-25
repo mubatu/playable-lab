@@ -7,22 +7,30 @@ import {
   CheckCircle2,
   ChevronRight,
   Code2,
+  CircleArrowDown,
   ExternalLink,
   FileArchive,
   FolderOpen,
+  Gauge,
   Hammer,
+  Hand,
   ImageIcon,
   LayoutTemplate,
   Loader2,
+  MonitorSmartphone,
   Music2,
+  PanelTop,
   Play,
   Plus,
   RefreshCw,
   RotateCcw,
   SlidersHorizontal,
   Sparkles,
+  Target,
+  Trophy,
   Trash2,
   Video,
+  Volume2,
   X
 } from 'lucide-react';
 import blastIcon from './assets/blast-icon.png';
@@ -45,6 +53,7 @@ import type {
   ConfigField,
   Playable,
   PlayableTemplate,
+  TemplateConfigSection,
   TemplateAsset,
   TemplateAssetFile,
   UploadedFilePayload
@@ -54,6 +63,7 @@ type View = 'playables' | 'create';
 type CreateFormTab = 'assets' | 'parameters';
 type Notice = { type: 'info' | 'success' | 'error'; message: string } | null;
 type AssetPreview = { name: string; type: string; url: string; size?: number };
+type ConfigGroup = { path: string; label: string; icon?: string; order: number; fields: ConfigField[]; advancedFields: ConfigField[] };
 
 const actionLabels: Record<View, string> = {
   playables: 'My Playables',
@@ -163,16 +173,38 @@ function sectionLabel(sectionPath: string, fields: ConfigField[] = []) {
   return acronyms[sectionName] || titleize(sectionName);
 }
 
-function groupConfigFields(fields: ConfigField[] = []) {
-  const groups: Array<{ path: string; label: string; fields: ConfigField[]; advancedFields: ConfigField[] }> = [];
+const sectionIconMap = {
+  CircleArrowDown,
+  Gauge,
+  Hand,
+  MonitorSmartphone,
+  PanelTop,
+  SlidersHorizontal,
+  Sparkles,
+  Target,
+  Trophy,
+  Volume2
+};
+
+function groupConfigFields(fields: ConfigField[] = [], sections: TemplateConfigSection[] = []) {
+  const groups: ConfigGroup[] = [];
   const groupByPath = new Map<string, (typeof groups)[number]>();
+  const sectionByPath = new Map(sections.map((section, index) => [section.path, { ...section, order: index }]));
 
   for (const field of fields) {
     const sectionPath = sectionPathForField(field);
     let group = groupByPath.get(sectionPath);
 
     if (!group) {
-      group = { path: sectionPath, label: sectionLabel(sectionPath, [field]), fields: [], advancedFields: [] };
+      const section = sectionByPath.get(sectionPath);
+      group = {
+        path: sectionPath,
+        label: section?.label || sectionLabel(sectionPath, [field]),
+        icon: section?.icon,
+        order: section?.order ?? sections.length + groups.length,
+        fields: [],
+        advancedFields: []
+      };
       groupByPath.set(sectionPath, group);
       groups.push(group);
     }
@@ -181,7 +213,7 @@ function groupConfigFields(fields: ConfigField[] = []) {
     else group.fields.push(field);
   }
 
-  return groups;
+  return groups.sort((first, second) => first.order - second.order);
 }
 
 function networkLabel(value: string) {
@@ -930,7 +962,7 @@ function CreateWorkspace({
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
   const [playableName, setPlayableName] = useState('');
   const assets = selectedTemplate?.assets || [];
-  const groups = useMemo(() => groupConfigFields(selectedTemplate?.config), [selectedTemplate]);
+  const groups = useMemo(() => groupConfigFields(selectedTemplate?.config, selectedTemplate?.configSections), [selectedTemplate]);
   const parameterCount = groups.reduce((count, group) => count + group.fields.length + group.advancedFields.length, 0);
 
   useEffect(() => {
@@ -1644,14 +1676,17 @@ function ParameterSection({
   values,
   onUpdate
 }: {
-  group: { path: string; label: string; fields: ConfigField[]; advancedFields: ConfigField[] };
+  group: ConfigGroup;
   values: Record<string, unknown>;
   onUpdate: (path: string, value: unknown) => void;
 }) {
   return (
     <section className="rounded-md border border-zinc-200">
       <div className="flex flex-col gap-2 border-b border-zinc-200 bg-zinc-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <h4 className="font-semibold text-zinc-950">{group.label}</h4>
+        <div className="flex items-center gap-2">
+          <SectionIcon icon={group.icon} />
+          <h4 className="font-semibold text-zinc-950">{group.label}</h4>
+        </div>
         <span className="text-xs font-medium text-zinc-500">
           {group.fields.length} standard · {group.advancedFields.length} advanced
         </span>
@@ -1674,6 +1709,16 @@ function ParameterSection({
         </details>
       ) : null}
     </section>
+  );
+}
+
+function SectionIcon({ icon }: { icon?: string }) {
+  const Icon = icon && icon in sectionIconMap ? sectionIconMap[icon as keyof typeof sectionIconMap] : SlidersHorizontal;
+
+  return (
+    <span className="grid size-7 shrink-0 place-items-center rounded-md border border-blue-100 bg-blue-50 text-blue-700">
+      <Icon className="size-4" />
+    </span>
   );
 }
 

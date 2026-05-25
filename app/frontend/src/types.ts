@@ -21,6 +21,12 @@ export interface TemplateAssetFile {
   url: string;
 }
 
+export interface TemplateConfigSection {
+  path: string;
+  label: string;
+  icon?: string;
+}
+
 export interface ConfigField {
   path: string;
   label: string;
@@ -41,6 +47,7 @@ export interface PlayableTemplate {
   description?: string;
   entry?: string;
   assets?: TemplateAsset[];
+  configSections?: TemplateConfigSection[];
   config?: ConfigField[];
 }
 
