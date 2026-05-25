@@ -31,7 +31,9 @@ export interface ConfigField {
   path: string;
   label: string;
   type: FieldType;
-  control?: 'input' | 'slider';
+  control?: 'input' | 'slider' | 'asset-select';
+  optionsFromAsset?: string;
+  sectionPath?: string;
   sectionLabel?: string;
   description?: string;
   default?: unknown;

@@ -4,8 +4,6 @@ export const GAME_CONFIG = {
     width: 1080,
     // Internal game-world height in pixels.
     height: 1920,
-    // Width divided by height. For `1080 / 1920`, this is a 9:16 portrait layout.
-    portraitRatio: 9 / 16,
     // Fallback canvas color shown behind the background image, useful when the viewport crops outside the stage.
     backgroundFill: '#101521'
   },
@@ -35,13 +33,13 @@ export const GAME_CONFIG = {
     // Corner radius of the single rounded grid panel.
     panelRadius: 34,
     // Fill color of the grid panel behind all objects.
-    panelFillColor: 'rgba(248, 241, 255, 0.9)',
+    panelFillColor: '#f8f1ff',
     // Stroke color around the grid panel.
-    panelStrokeColor: 'rgba(255, 255, 255, 0.96)',
+    panelStrokeColor: '#ffffff',
     // Stroke width around the grid panel.
     panelStrokeWidth: 5,
     // Drop shadow color for the grid panel.
-    panelShadowColor: 'rgba(0, 0, 0, 0.2)',
+    panelShadowColor: '#000000',
     // Render size of each object in game-world pixels.
     objectSize: 120,
     // Falling speed for objects after a blast, in game-world pixels per second.
@@ -61,7 +59,7 @@ export const GAME_CONFIG = {
     // Initial stroke width of the blast ring.
     ringWidth: 7,
     // Color of the blast ring.
-    ringColor: 'rgba(255, 255, 255, 0.86)',
+    ringColor: '#ffffff',
     // Number of small circle particles emitted per blasted object.
     particleCount: 18,
     // Maximum distance particles travel from the blasted object.
@@ -100,9 +98,9 @@ export const GAME_CONFIG = {
       // Timer warning color when time is low.
       warningColor: '#ffe16a',
       // Background color for timer and target panels.
-      panelColor: 'rgba(18, 26, 44, 0.72)',
+      panelColor: '#121a2c',
       // Border color for timer and target panels.
-      panelBorderColor: 'rgba(255, 255, 255, 0.36)',
+      panelBorderColor: '#ffffff',
       // Target icon size inside the HUD.
       targetIconSize: 48
     },
@@ -114,7 +112,7 @@ export const GAME_CONFIG = {
       // Instruction text color.
       color: '#ffffff',
       // Shadow/stroke color used behind the instruction text.
-      strokeColor: 'rgba(0, 0, 0, 0.4)'
+      strokeColor: '#000000'
     },
     endButton: {
       // Text shown on the end screen CTA button.

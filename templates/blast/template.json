@@ -3,6 +3,48 @@
   "name": "Blast",
   "description": "Tap matching objects in a configurable grid before time runs out.",
   "entry": "src/index.html",
+  "configSections": [
+    {
+      "path": "gameplay",
+      "label": "Game Rules",
+      "icon": "Gauge"
+    },
+    {
+      "path": "grid",
+      "label": "Grid",
+      "icon": "Grid3X3"
+    },
+    {
+      "path": "ui.instruction",
+      "label": "Instruction",
+      "icon": "BadgeInfo"
+    },
+    {
+      "path": "ui.endButton",
+      "label": "End Screen",
+      "icon": "Trophy"
+    },
+    {
+      "path": "stage",
+      "label": "Game Canvas",
+      "icon": "MonitorSmartphone"
+    },
+    {
+      "path": "ui.hud",
+      "label": "HUD Timer & Target",
+      "icon": "PanelTop"
+    },
+    {
+      "path": "blast",
+      "label": "Blast Feedback Effects",
+      "icon": "Sparkles"
+    },
+    {
+      "path": "audio",
+      "label": "Audio Levels",
+      "icon": "Volume2"
+    }
+  ],
   "assets": [
     {
       "id": "background",
@@ -54,546 +96,582 @@
   ],
   "config": [
     {
-      "path": "stage.width",
-      "label": "Stage Width",
-      "type": "number",
-      "description": "Internal game-world width in pixels. The game logic and drawing use this coordinate system.",
-      "min": 0,
-      "max": 4000,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "stage.height",
-      "label": "Stage Height",
-      "type": "number",
-      "description": "Internal game-world height in pixels.",
-      "min": 0,
-      "max": 4000,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "stage.portraitRatio",
-      "label": "Stage Portrait Ratio",
-      "type": "number",
-      "description": "Width divided by height. For `1080 / 1920`, this is a 9:16 portrait layout.",
-      "min": 0.1,
-      "max": 2,
-      "step": 0.01,
-      "advanced": true
-    },
-    {
-      "path": "stage.backgroundFill",
-      "label": "Stage Background Fill",
-      "type": "color",
-      "description": "Fallback canvas color shown behind the background image, useful when the viewport crops outside the stage.",
-      "advanced": true
-    },
-    {
       "path": "gameplay.durationSeconds",
-      "label": "Duration",
+      "label": "Game Duration (seconds)",
       "type": "number",
-      "description": "Total game duration before the game ends.",
+      "description": "Total playable length in seconds. The game ends when this timer reaches zero unless the player blasts all required target objects first.",
       "min": 5,
       "max": 200,
-      "step": 1
+      "step": 1,
+      "control": "input"
     },
     {
       "path": "gameplay.targetObjectIndex",
-      "label": "Target Object Index",
+      "label": "Target Object",
       "type": "number",
-      "description": "Zero-based index of the object shown in the HUD as the target. `0` uses `object-1.png`; values are clamped to available objects.",
+      "description": "Choose which uploaded object image counts as the target to blast.",
       "min": 0,
       "max": 99,
-      "step": 1
+      "step": 1,
+      "control": "asset-select",
+      "optionsFromAsset": "objects"
     },
     {
       "path": "gameplay.targetCount",
       "label": "Target Count",
       "type": "number",
-      "description": "Number of target objects the player needs to blast before the game ends.",
+      "description": "Number of target objects the player needs to blast before the game ends early. The HUD shows this as the remaining target count.",
       "min": 1,
       "max": 99,
-      "step": 1
+      "step": 1,
+      "control": "input"
     },
     {
       "path": "gameplay.minBlastGroupSize",
       "label": "Minimum Blast Group Size",
       "type": "number",
-      "description": "Minimum connected same-object group size required for a tap to blast the group.",
+      "description": "Minimum connected same-object group size needed for a tap to remove objects from the board. Higher values make valid moves harder to find.",
       "min": 2,
       "max": 8,
-      "step": 1
+      "step": 1,
+      "control": "input"
     },
     {
       "path": "grid.rows",
       "label": "Grid Rows",
       "type": "number",
-      "description": "Number of object rows in the board.",
+      "description": "Number of rows in the object board. More rows increase board density and can make the game feel more complex.",
       "min": 2,
       "max": 10,
-      "step": 1
+      "step": 1,
+      "control": "input"
     },
     {
       "path": "grid.columns",
       "label": "Grid Columns",
       "type": "number",
-      "description": "Number of object columns in the board.",
+      "description": "Number of columns in the object board. More columns increase board density and can create wider matching groups.",
       "min": 2,
       "max": 8,
-      "step": 1
+      "step": 1,
+      "control": "input"
     },
     {
       "path": "grid.top",
-      "label": "Grid Top Offset",
+      "label": "Grid Top Offset (px)",
       "type": "number",
-      "description": "Distance from the top of the stage to the top edge of the centered grid panel.",
+      "description": "Distance in game-world pixels from the top of the canvas to the top edge of the centered grid panel.",
       "min": 0,
       "max": 1920,
       "step": 1,
-      "advanced": true
+      "advanced": true,
+      "control": "input"
     },
     {
       "path": "grid.padding",
-      "label": "Grid Padding",
+      "label": "Grid Padding (px)",
       "type": "number",
-      "description": "Inner spacing between the panel edge and the first/last object centers.",
+      "description": "Inner spacing in game-world pixels between the grid panel edge and the nearest object centers.",
       "min": 0,
       "max": 120,
       "step": 1,
-      "advanced": true
+      "advanced": true,
+      "control": "input"
     },
     {
       "path": "grid.gapX",
-      "label": "Grid Horizontal Gap",
+      "label": "Grid Horizontal Gap (px)",
       "type": "number",
-      "description": "Horizontal spacing between neighboring object cells.",
+      "description": "Horizontal spacing in game-world pixels between neighboring object cells.",
       "min": 0,
       "max": 80,
       "step": 1,
-      "advanced": true
+      "advanced": true,
+      "control": "input"
     },
     {
       "path": "grid.gapY",
-      "label": "Grid Vertical Gap",
+      "label": "Grid Vertical Gap (px)",
       "type": "number",
-      "description": "Vertical spacing between neighboring object cells.",
+      "description": "Vertical spacing in game-world pixels between neighboring object cells.",
       "min": 0,
       "max": 80,
       "step": 1,
-      "advanced": true
+      "advanced": true,
+      "control": "input"
     },
     {
       "path": "grid.panelRadius",
-      "label": "Grid Panel Radius",
+      "label": "Grid Panel Corner Radius (px)",
       "type": "number",
-      "description": "Corner radius of the single rounded grid panel.",
+      "description": "Corner radius in game-world pixels for the rounded grid panel behind the objects.",
       "min": 0,
       "max": 120,
       "step": 1,
-      "advanced": true
+      "advanced": true,
+      "control": "input"
     },
     {
       "path": "grid.panelFillColor",
       "label": "Grid Panel Fill Color",
-      "type": "string",
-      "description": "Fill color of the grid panel behind all objects.",
+      "type": "color",
+      "description": "Hex color for the grid panel fill behind all objects.",
       "advanced": true
     },
     {
       "path": "grid.panelStrokeColor",
-      "label": "Grid Panel Stroke Color",
-      "type": "string",
-      "description": "Stroke color around the grid panel.",
+      "label": "Grid Panel Border Color",
+      "type": "color",
+      "description": "Hex color for the border around the grid panel.",
       "advanced": true
     },
     {
       "path": "grid.panelStrokeWidth",
-      "label": "Grid Panel Stroke Width",
+      "label": "Grid Panel Border Width (px)",
       "type": "number",
-      "description": "Stroke width around the grid panel.",
+      "description": "Border width in game-world pixels around the grid panel.",
       "min": 0,
       "max": 20,
       "step": 1,
-      "advanced": true
+      "advanced": true,
+      "control": "input"
     },
     {
       "path": "grid.panelShadowColor",
       "label": "Grid Panel Shadow Color",
-      "type": "string",
-      "description": "Drop shadow color for the grid panel.",
+      "type": "color",
+      "description": "Hex color for the grid panel drop shadow.",
       "advanced": true
     },
     {
       "path": "grid.objectSize",
-      "label": "Object Size",
+      "label": "Object Size (px)",
       "type": "number",
-      "description": "Render size of each object in game-world pixels.",
+      "description": "Rendered width and height in game-world pixels for each board object.",
       "min": 48,
       "max": 240,
-      "step": 1
+      "step": 1,
+      "control": "input"
     },
     {
       "path": "grid.fallSpeed",
-      "label": "Object Fall Speed",
+      "label": "Object Fall Speed (px/sec)",
       "type": "number",
-      "description": "Falling speed for objects after a blast, in game-world pixels per second.",
+      "description": "Falling speed in game-world pixels per second for objects dropping into empty spaces after a blast.",
       "min": 500,
       "max": 8000,
       "step": 100,
-      "advanced": true
+      "advanced": true,
+      "control": "input"
     },
     {
       "path": "grid.targetSpawnChance",
       "label": "Target Spawn Chance",
       "type": "number",
-      "description": "Probability that newly generated objects use the target object.",
+      "description": "Probability from 0 to 1 that a newly generated object is the target object. For example, 0.2 means 20% of refilled objects are targets.",
       "min": 0,
       "max": 1,
       "step": 0.01,
-      "advanced": true
+      "advanced": true,
+      "control": "slider"
     },
     {
       "path": "grid.minTargetCells",
       "label": "Minimum Target Cells",
       "type": "number",
-      "description": "Minimum number of target objects kept on the board after generation or refill.",
+      "description": "Minimum number of target objects kept on the board after initial generation or refill, as long as targets are still required.",
       "min": 0,
       "max": 20,
       "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "blast.durationMs",
-      "label": "Blast Duration (ms)",
-      "type": "number",
-      "description": "How long blast particles and ring stay visible in milliseconds.",
-      "min": 0,
-      "max": 5000,
-      "step": 10,
-      "advanced": true
-    },
-    {
-      "path": "blast.ringStartRadius",
-      "label": "Blast Ring Start Radius",
-      "type": "number",
-      "description": "Starting radius of the blast ring.",
-      "min": 0,
-      "max": 4000,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "blast.ringEndRadius",
-      "label": "Blast Ring End Radius",
-      "type": "number",
-      "description": "Final radius of the blast ring.",
-      "min": 0,
-      "max": 4000,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "blast.ringWidth",
-      "label": "Blast Ring Width",
-      "type": "number",
-      "description": "Initial stroke width of the blast ring.",
-      "min": 0,
-      "max": 4000,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "blast.ringColor",
-      "label": "Blast Ring Color",
-      "type": "string",
-      "description": "Color of the blast ring.",
-      "advanced": true
-    },
-    {
-      "path": "blast.particleCount",
-      "label": "Blast Particle Count",
-      "type": "number",
-      "description": "Number of small circle particles emitted per blasted object.",
-      "min": 0,
-      "max": 4000,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "blast.particleDistance",
-      "label": "Blast Particle Distance",
-      "type": "number",
-      "description": "Maximum distance particles travel from the blasted object.",
-      "min": 0,
-      "max": 4000,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "blast.particleSize",
-      "label": "Blast Particle Size",
-      "type": "number",
-      "description": "Base radius of each particle.",
-      "min": 0,
-      "max": 4000,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "blast.particleColors",
-      "label": "Blast Particle Colors",
-      "type": "array",
-      "description": "Particle colors are cycled across the emitted circles.",
-      "advanced": true
-    },
-    {
-      "path": "audio.soundtrackVolume",
-      "label": "Soundtrack Volume",
-      "type": "number",
-      "description": "Background music volume multiplier.",
-      "min": 0,
-      "max": 1,
-      "step": 0.01,
-      "advanced": true
-    },
-    {
-      "path": "audio.effectVolume",
-      "label": "Effect Volume",
-      "type": "number",
-      "description": "Blast sound effect volume multiplier.",
-      "min": 0,
-      "max": 1,
-      "step": 0.01,
-      "advanced": true
-    },
-    {
-      "path": "ui.lowTimeWarningSeconds",
-      "label": "Low Time Warning Seconds",
-      "type": "number",
-      "description": "When remaining time is at or below this value, the timer HUD switches to warning color.",
-      "min": 0,
-      "max": 200,
-      "step": 1,
-      "advanced": true
+      "advanced": true,
+      "control": "input"
     },
     {
       "path": "ui.instructionText",
       "label": "Instruction Text",
       "type": "string",
-      "description": "Text shown between the top HUD and the grid."
-    },
-    {
-      "path": "ui.hud.top",
-      "label": "HUD Top",
-      "type": "number",
-      "description": "Top offset from the safe-area top in CSS pixels.",
-      "min": 0,
-      "max": 4000,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "ui.hud.widthVw",
-      "label": "HUD Width (vw)",
-      "type": "number",
-      "description": "HUD width as a percentage of viewport width.",
-      "min": 0,
-      "max": 100,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "ui.hud.maxWidth",
-      "label": "HUD Max Width",
-      "type": "number",
-      "description": "Maximum HUD width in CSS pixels.",
-      "min": 0,
-      "max": 1200,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "ui.hud.height",
-      "label": "HUD Height",
-      "type": "number",
-      "description": "HUD panel height in CSS pixels.",
-      "min": 0,
-      "max": 400,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "ui.hud.gap",
-      "label": "HUD Gap",
-      "type": "number",
-      "description": "Gap between timer and target panels in CSS pixels.",
-      "min": 0,
-      "max": 120,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "ui.hud.fontSize",
-      "label": "HUD Font Size",
-      "type": "number",
-      "description": "HUD text size in CSS pixels.",
-      "min": 0,
-      "max": 120,
-      "step": 1,
-      "advanced": true
-    },
-    {
-      "path": "ui.hud.textColor",
-      "label": "HUD Text Color",
-      "type": "color",
-      "description": "Normal HUD text color.",
-      "advanced": true
-    },
-    {
-      "path": "ui.hud.warningColor",
-      "label": "HUD Warning Color",
-      "type": "color",
-      "description": "Timer warning color when time is low.",
-      "advanced": true
-    },
-    {
-      "path": "ui.hud.panelColor",
-      "label": "HUD Panel Color",
-      "type": "string",
-      "description": "Background color for timer and target panels.",
-      "advanced": true
-    },
-    {
-      "path": "ui.hud.panelBorderColor",
-      "label": "HUD Panel Border Color",
-      "type": "string",
-      "description": "Border color for timer and target panels.",
-      "advanced": true
-    },
-    {
-      "path": "ui.hud.targetIconSize",
-      "label": "HUD Target Icon Size",
-      "type": "number",
-      "description": "Target icon size inside the HUD.",
-      "min": 0,
-      "max": 160,
-      "step": 1,
-      "advanced": true
+      "description": "Instruction copy shown between the top HUD and the object grid during gameplay.",
+      "sectionPath": "ui.instruction"
     },
     {
       "path": "ui.instruction.top",
-      "label": "Instruction Top",
+      "label": "Instruction Top Offset (CSS px)",
       "type": "number",
-      "description": "Top offset for the instruction text in CSS pixels.",
+      "description": "Distance in CSS pixels from the top of the screen to the instruction text.",
       "min": 0,
       "max": 1200,
       "step": 1,
-      "advanced": true
+      "advanced": true,
+      "control": "input"
     },
     {
       "path": "ui.instruction.fontSize",
-      "label": "Instruction Font Size",
+      "label": "Instruction Font Size (CSS px)",
       "type": "number",
       "description": "Instruction text size in CSS pixels.",
       "min": 0,
       "max": 120,
       "step": 1,
-      "advanced": true
+      "advanced": true,
+      "control": "input"
     },
     {
       "path": "ui.instruction.color",
-      "label": "Instruction Color",
+      "label": "Instruction Text Color",
       "type": "color",
-      "description": "Instruction text color.",
+      "description": "Hex color for the instruction text.",
       "advanced": true
     },
     {
       "path": "ui.instruction.strokeColor",
       "label": "Instruction Stroke Color",
-      "type": "string",
-      "description": "Shadow/stroke color used behind the instruction text.",
+      "type": "color",
+      "description": "Hex color for the shadow or stroke behind the instruction text.",
       "advanced": true
     },
     {
       "path": "ui.endButton.text",
       "label": "End Button Text",
       "type": "string",
-      "description": "Text shown on the end screen CTA button."
+      "description": "Text shown on the call-to-action button on the end screen."
     },
     {
       "path": "ui.endButton.width",
-      "label": "End Button Width",
+      "label": "End Button Width (CSS px)",
       "type": "number",
-      "description": "Button width in CSS pixels.",
+      "description": "End-screen button width in CSS pixels.",
       "min": 0,
       "max": 600,
       "step": 1,
-      "advanced": true
+      "advanced": true,
+      "control": "input"
     },
     {
       "path": "ui.endButton.height",
-      "label": "End Button Height",
+      "label": "End Button Height (CSS px)",
       "type": "number",
-      "description": "Button height in CSS pixels.",
+      "description": "End-screen button height in CSS pixels.",
       "min": 0,
       "max": 240,
       "step": 1,
-      "advanced": true
+      "advanced": true,
+      "control": "input"
     },
     {
       "path": "ui.endButton.fontSize",
-      "label": "End Button Font Size",
+      "label": "End Button Font Size (CSS px)",
       "type": "number",
-      "description": "Button text size in CSS pixels.",
+      "description": "End-screen button text size in CSS pixels.",
       "min": 0,
       "max": 120,
       "step": 1,
-      "advanced": true
+      "advanced": true,
+      "control": "input"
     },
     {
       "path": "ui.endButton.centerYPercent",
-      "label": "End Button Center Y Percent",
+      "label": "End Button Vertical Position (%)",
       "type": "number",
-      "description": "Button center Y position as a percentage of screen height.",
+      "description": "Vertical position of the end-screen button center as a percentage of screen height. Lower values place it higher on the screen.",
       "min": 0,
       "max": 100,
       "step": 1,
-      "advanced": true
+      "advanced": true,
+      "control": "input"
     },
     {
       "path": "ui.endButton.backgroundColor",
-      "label": "End Button Color",
+      "label": "End Button Background Color",
       "type": "color",
-      "description": "Button background color."
+      "description": "Hex color for the end-screen call-to-action button background."
     },
     {
       "path": "ui.endButton.textColor",
       "label": "End Button Text Color",
       "type": "color",
-      "description": "Button text color.",
+      "description": "Hex color for the end-screen call-to-action button text.",
       "advanced": true
     },
     {
       "path": "ui.endButton.pulseScale",
       "label": "End Button Pulse Scale",
       "type": "number",
-      "description": "Largest scale used by the repeating big-small button effect.",
+      "description": "Largest scale reached by the repeating button pulse animation. 1 means no size increase; 1.08 means 8% larger at the peak.",
       "min": 0.5,
       "max": 2,
       "step": 0.01,
-      "advanced": true
+      "advanced": true,
+      "control": "slider"
     },
     {
       "path": "ui.endButton.pulseDurationMs",
       "label": "End Button Pulse Duration (ms)",
       "type": "number",
-      "description": "Duration of one big-small animation cycle in milliseconds.",
+      "description": "Duration of one full button pulse animation cycle, in milliseconds.",
       "min": 0,
       "max": 5000,
       "step": 10,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "stage.width",
+      "label": "Canvas Width (px)",
+      "type": "number",
+      "description": "Internal canvas width in game-world pixels. Match this with the creative aspect ratio; grid placement, object sizes, and tap coordinates are measured against this width.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "stage.height",
+      "label": "Canvas Height (px)",
+      "type": "number",
+      "description": "Internal canvas height in game-world pixels. Match this with the creative aspect ratio; grid placement, object sizes, and tap coordinates are measured against this height.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "stage.backgroundFill",
+      "label": "Canvas Background Fill",
+      "type": "color",
+      "description": "Hex color shown behind the background image whenever the canvas is visible outside the artwork, such as during viewport cropping or letterboxing.",
       "advanced": true
+    },
+    {
+      "path": "ui.lowTimeWarningSeconds",
+      "label": "Low-Time Warning Threshold (seconds)",
+      "type": "number",
+      "description": "Remaining time threshold in seconds when the HUD timer switches to the low-time warning color.",
+      "min": 0,
+      "max": 200,
+      "step": 1,
+      "advanced": true,
+      "control": "input",
+      "sectionPath": "ui.hud"
+    },
+    {
+      "path": "ui.hud.top",
+      "label": "HUD Top Offset (CSS px)",
+      "type": "number",
+      "description": "Distance in CSS pixels from the safe-area top of the screen to the top of the HUD.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "ui.hud.widthVw",
+      "label": "HUD Width (vw)",
+      "type": "number",
+      "description": "HUD width as a percentage of viewport width. For example, 88 means the HUD is 88vw until capped by maximum width.",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "ui.hud.maxWidth",
+      "label": "HUD Maximum Width (CSS px)",
+      "type": "number",
+      "description": "Maximum HUD width in CSS pixels, used to keep the timer and target panels readable on larger screens.",
+      "min": 0,
+      "max": 1200,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "ui.hud.height",
+      "label": "HUD Height (CSS px)",
+      "type": "number",
+      "description": "Height in CSS pixels for the timer and target HUD panels.",
+      "min": 0,
+      "max": 400,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "ui.hud.gap",
+      "label": "HUD Panel Gap (CSS px)",
+      "type": "number",
+      "description": "Horizontal gap in CSS pixels between the timer panel and the target-count panel.",
+      "min": 0,
+      "max": 120,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "ui.hud.fontSize",
+      "label": "HUD Font Size (CSS px)",
+      "type": "number",
+      "description": "Text size in CSS pixels for the timer and target count in the HUD.",
+      "min": 0,
+      "max": 120,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "ui.hud.textColor",
+      "label": "HUD Text Color",
+      "type": "color",
+      "description": "Hex color for normal HUD text.",
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.warningColor",
+      "label": "Low-Time Timer Color",
+      "type": "color",
+      "description": "Hex color for the timer text after the low-time warning threshold is reached.",
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.panelColor",
+      "label": "HUD Panel Background Color",
+      "type": "color",
+      "description": "Hex color for the timer and target panel backgrounds.",
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.panelBorderColor",
+      "label": "HUD Panel Border Color",
+      "type": "color",
+      "description": "Hex color for the timer and target panel borders.",
+      "advanced": true
+    },
+    {
+      "path": "ui.hud.targetIconSize",
+      "label": "HUD Target Icon Size (CSS px)",
+      "type": "number",
+      "description": "Rendered target icon size in CSS pixels inside the HUD target panel.",
+      "min": 0,
+      "max": 160,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "blast.durationMs",
+      "label": "Blast Duration (ms)",
+      "type": "number",
+      "description": "How long the blast ring and particles remain visible, in milliseconds, after a valid group is tapped.",
+      "min": 0,
+      "max": 5000,
+      "step": 10,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "blast.ringStartRadius",
+      "label": "Blast Ring Start Radius (px)",
+      "type": "number",
+      "description": "Starting radius in game-world pixels for the expanding blast ring.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "blast.ringEndRadius",
+      "label": "Blast Ring End Radius (px)",
+      "type": "number",
+      "description": "Final radius in game-world pixels reached by the expanding blast ring.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "blast.ringWidth",
+      "label": "Blast Ring Width (px)",
+      "type": "number",
+      "description": "Initial stroke width in game-world pixels for the blast ring.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "blast.ringColor",
+      "label": "Blast Ring Color",
+      "type": "color",
+      "description": "Hex color for the blast ring glow and stroke.",
+      "advanced": true
+    },
+    {
+      "path": "blast.particleCount",
+      "label": "Blast Particle Count",
+      "type": "number",
+      "description": "Number of small circular particles emitted for each blasted object.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "blast.particleDistance",
+      "label": "Blast Particle Distance (px)",
+      "type": "number",
+      "description": "Maximum travel distance in game-world pixels for blast particles from the object center.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "blast.particleSize",
+      "label": "Blast Particle Size (px)",
+      "type": "number",
+      "description": "Base particle radius in game-world pixels before per-particle random scaling is applied.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "blast.particleColors",
+      "label": "Blast Particle Colors",
+      "type": "array",
+      "description": "JSON array of hex colors cycled across emitted particles, such as [\"#ffffff\", \"#ffe66d\"].",
+      "advanced": true
+    },
+    {
+      "path": "audio.soundtrackVolume",
+      "label": "Soundtrack Volume",
+      "type": "number",
+      "description": "Background music volume multiplier from 0 to 1. This affects only the looping soundtrack.",
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "advanced": true,
+      "control": "slider"
+    },
+    {
+      "path": "audio.effectVolume",
+      "label": "Blast Sound Volume",
+      "type": "number",
+      "description": "Blast sound effect volume multiplier from 0 to 1. This affects the sound played after a valid blast.",
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "advanced": true,
+      "control": "slider"
     }
   ]
 }

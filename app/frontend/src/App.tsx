@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
@@ -12,11 +12,13 @@ import {
   FileArchive,
   FolderOpen,
   Gauge,
+  Grid3X3,
   Hammer,
   Hand,
   ImageIcon,
   LayoutTemplate,
   Loader2,
+  BadgeInfo,
   MonitorSmartphone,
   Music2,
   PanelTop,
@@ -63,6 +65,8 @@ type View = 'playables' | 'create';
 type CreateFormTab = 'assets' | 'parameters';
 type Notice = { type: 'info' | 'success' | 'error'; message: string } | null;
 type AssetPreview = { name: string; type: string; url: string; size?: number };
+type AssetSelectOption = { value: number; label: string; previewUrl?: string };
+type AssetOptionsById = Record<string, AssetSelectOption[]>;
 type ConfigGroup = { path: string; label: string; icon?: string; order: number; fields: ConfigField[]; advancedFields: ConfigField[] };
 
 const actionLabels: Record<View, string> = {
@@ -159,6 +163,8 @@ function titleize(value: string) {
 }
 
 function sectionPathForField(field: ConfigField) {
+  if (field.sectionPath) return field.sectionPath;
+
   const parts = String(field.path || '').split('.').filter(Boolean);
   if (parts.length <= 1) return parts[0] || 'parameters';
   return parts.slice(0, -1).join('.');
@@ -174,8 +180,10 @@ function sectionLabel(sectionPath: string, fields: ConfigField[] = []) {
 }
 
 const sectionIconMap = {
+  BadgeInfo,
   CircleArrowDown,
   Gauge,
+  Grid3X3,
   Hand,
   MonitorSmartphone,
   PanelTop,
@@ -961,6 +969,7 @@ function CreateWorkspace({
   const [activeFormTab, setActiveFormTab] = useState<CreateFormTab>('assets');
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
   const [playableName, setPlayableName] = useState('');
+  const [assetOptionsById, setAssetOptionsById] = useState<AssetOptionsById>({});
   const assets = selectedTemplate?.assets || [];
   const groups = useMemo(() => groupConfigFields(selectedTemplate?.config, selectedTemplate?.configSections), [selectedTemplate]);
   const parameterCount = groups.reduce((count, group) => count + group.fields.length + group.advancedFields.length, 0);
@@ -969,7 +978,27 @@ function CreateWorkspace({
     setActiveFormTab(assets.length > 0 ? 'assets' : 'parameters');
     setNameDialogOpen(false);
     setPlayableName('');
+    setAssetOptionsById({});
   }, [selectedTemplate?.id, assets.length]);
+
+  useEffect(() => {
+    if (!selectedTemplate) return;
+
+    for (const field of selectedTemplate.config || []) {
+      if (field.control !== 'asset-select' || !field.optionsFromAsset) continue;
+      const options = assetOptionsById[field.optionsFromAsset] || [];
+      if (options.length === 0) continue;
+
+      const currentValue = Number(configValues[field.path] ?? field.default);
+      if (!options.some((option) => option.value === currentValue)) {
+        onUpdateConfig(field.path, options[0].value);
+      }
+    }
+  }, [assetOptionsById, configValues, onUpdateConfig, selectedTemplate]);
+
+  const updateAssetOptions = useCallback((assetId: string, options: AssetSelectOption[]) => {
+    setAssetOptionsById((current) => ({ ...current, [assetId]: options }));
+  }, []);
 
   function openTemplateForm(templateId: string) {
     onSelectTemplate(templateId);
@@ -1101,12 +1130,12 @@ function CreateWorkspace({
 
             <div className="mt-5">
               <div hidden={activeFormTab !== 'assets'}>
-                <AssetSection assets={assets} />
+                <AssetSection assets={assets} onAssetOptionsChange={updateAssetOptions} />
               </div>
               <div hidden={activeFormTab !== 'parameters'}>
                 <div className="grid gap-5">
                   {groups.map((group) => (
-                    <ParameterSection key={group.path} group={group} values={configValues} onUpdate={onUpdateConfig} />
+                    <ParameterSection key={group.path} group={group} values={configValues} assetOptionsById={assetOptionsById} onUpdate={onUpdateConfig} />
                   ))}
                 </div>
               </div>
@@ -1350,7 +1379,7 @@ function SectionHeading({ title, description }: { title: string; description?: s
   );
 }
 
-function AssetSection({ assets }: { assets: TemplateAsset[] }) {
+function AssetSection({ assets, onAssetOptionsChange }: { assets: TemplateAsset[]; onAssetOptionsChange: (assetId: string, options: AssetSelectOption[]) => void }) {
   if (assets.length === 0) return null;
   return (
     <section>
@@ -1359,6 +1388,7 @@ function AssetSection({ assets }: { assets: TemplateAsset[] }) {
           <AssetUploadField
             key={asset.id}
             asset={asset}
+            onAssetOptionsChange={onAssetOptionsChange}
           />
         ))}
       </div>
@@ -1366,13 +1396,14 @@ function AssetSection({ assets }: { assets: TemplateAsset[] }) {
   );
 }
 
-function AssetUploadField({ asset }: { asset: TemplateAsset }) {
+function AssetUploadField({ asset, onAssetOptionsChange }: { asset: TemplateAsset; onAssetOptionsChange: (assetId: string, options: AssetSelectOption[]) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
+  const [fileOptions, setFileOptions] = useState<AssetSelectOption[]>([]);
   const [defaultFilesVisible, setDefaultFilesVisible] = useState(true);
   const [dragActive, setDragActive] = useState(false);
   const [preview, setPreview] = useState<AssetPreview | null>(null);
-  const defaultFiles = asset.defaultFiles || [];
+  const defaultFiles = useMemo(() => asset.defaultFiles || [], [asset.defaultFiles]);
   const defaultFileKey = defaultFiles.map((file) => file.url).join('|');
 
   useEffect(() => {
@@ -1398,6 +1429,19 @@ function AssetUploadField({ asset }: { asset: TemplateAsset }) {
     setPreview(null);
     if (inputRef.current) inputRef.current.value = '';
   }, [asset.id, defaultFileKey]);
+
+  useEffect(() => {
+    const objectUrls: string[] = [];
+    const nextOptions = files.map((file, index) => {
+      const supportsPreview = isImageAsset(file.name, file.type);
+      const previewUrl = supportsPreview ? URL.createObjectURL(file) : undefined;
+      if (previewUrl) objectUrls.push(previewUrl);
+      return { value: index, label: file.name, previewUrl };
+    });
+
+    setFileOptions(nextOptions);
+    return () => objectUrls.forEach((url) => URL.revokeObjectURL(url));
+  }, [files]);
 
   function syncInputFiles(nextFiles: File[]) {
     const input = inputRef.current;
@@ -1443,7 +1487,13 @@ function AssetUploadField({ asset }: { asset: TemplateAsset }) {
     updateFiles(files.filter((_, fileIndex) => fileIndex !== index));
   }
 
-  const selectedDefaults = files.length === 0 && defaultFilesVisible ? defaultFiles : [];
+  const selectedDefaults = useMemo(() => (files.length === 0 && defaultFilesVisible ? defaultFiles : []), [defaultFiles, defaultFilesVisible, files.length]);
+  const defaultOptions = useMemo(() => selectedDefaults.map((file, index) => ({ value: index, label: file.name, previewUrl: file.url })), [selectedDefaults]);
+  const visibleAssetOptions = useMemo(() => (files.length > 0 ? fileOptions : defaultOptions), [defaultOptions, fileOptions, files.length]);
+  useEffect(() => {
+    onAssetOptionsChange(asset.id, visibleAssetOptions);
+  }, [asset.id, onAssetOptionsChange, visibleAssetOptions]);
+
   const hasVisibleSelection = files.length > 0 || selectedDefaults.length > 0;
   const canAddFile = asset.multiple || !hasVisibleSelection;
   const selectedAssets = [
@@ -1674,10 +1724,12 @@ function FieldShell({ label, hint, children }: { label: string; hint?: string; c
 function ParameterSection({
   group,
   values,
+  assetOptionsById,
   onUpdate
 }: {
   group: ConfigGroup;
   values: Record<string, unknown>;
+  assetOptionsById: AssetOptionsById;
   onUpdate: (path: string, value: unknown) => void;
 }) {
   return (
@@ -1694,7 +1746,7 @@ function ParameterSection({
       {group.fields.length > 0 ? (
         <div className="grid gap-3 p-4 md:grid-cols-2">
           {group.fields.map((field) => (
-            <ConfigInput key={field.path} field={field} value={values[field.path] ?? field.default} onUpdate={onUpdate} />
+            <ConfigInput key={field.path} field={field} value={values[field.path] ?? field.default} assetOptionsById={assetOptionsById} onUpdate={onUpdate} />
           ))}
         </div>
       ) : null}
@@ -1703,7 +1755,7 @@ function ParameterSection({
           <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-blue-700">Advanced</summary>
           <div className="grid gap-3 px-4 pb-4 md:grid-cols-2">
             {group.advancedFields.map((field) => (
-              <ConfigInput key={field.path} field={field} value={values[field.path] ?? field.default} onUpdate={onUpdate} />
+              <ConfigInput key={field.path} field={field} value={values[field.path] ?? field.default} assetOptionsById={assetOptionsById} onUpdate={onUpdate} />
             ))}
           </div>
         </details>
@@ -1722,7 +1774,17 @@ function SectionIcon({ icon }: { icon?: string }) {
   );
 }
 
-function ConfigInput({ field, value, onUpdate }: { field: ConfigField; value: unknown; onUpdate: (path: string, value: unknown) => void }) {
+function ConfigInput({
+  field,
+  value,
+  assetOptionsById,
+  onUpdate
+}: {
+  field: ConfigField;
+  value: unknown;
+  assetOptionsById: AssetOptionsById;
+  onUpdate: (path: string, value: unknown) => void;
+}) {
   if (field.type === 'boolean') {
     return (
       <label className="flex items-start justify-between gap-3 rounded-md border border-zinc-200 bg-white p-3">
@@ -1741,6 +1803,44 @@ function ConfigInput({ field, value, onUpdate }: { field: ConfigField; value: un
     value: valueAsInput(value),
     onChange: (event: React.ChangeEvent<HTMLInputElement>) => onUpdate(field.path, field.type === 'number' ? Number(event.target.value) : event.target.value)
   };
+
+  if (field.control === 'asset-select') {
+    const options = field.optionsFromAsset ? assetOptionsById[field.optionsFromAsset] || [] : [];
+    const selectedValue = Number(value ?? options[0]?.value ?? 0);
+    const selectedOption = options.find((option) => option.value === selectedValue);
+
+    return (
+      <FieldShell label={field.label} hint={field.description}>
+        <div className="grid gap-2 sm:grid-cols-[56px_minmax(0,1fr)] sm:items-center">
+          <span className="grid size-14 place-items-center overflow-hidden rounded-md border border-zinc-200 bg-white">
+            {selectedOption?.previewUrl ? (
+              <img className="h-full w-full object-contain" src={selectedOption.previewUrl} alt="" />
+            ) : (
+              <ImageIcon className="size-5 text-zinc-400" />
+            )}
+          </span>
+          <select
+            className="input"
+            id={field.path}
+            name={field.path}
+            value={String(selectedValue)}
+            disabled={options.length === 0}
+            onChange={(event) => onUpdate(field.path, field.type === 'number' ? Number(event.target.value) : event.target.value)}
+          >
+            {options.length === 0 ? (
+              <option value={String(selectedValue)}>Upload object images first</option>
+            ) : (
+              options.map((option) => (
+                <option key={`${option.value}-${option.label}`} value={option.value}>
+                  {option.value + 1}. {option.label}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
+      </FieldShell>
+    );
+  }
 
   return (
     <FieldShell label={field.label} hint={field.description}>
