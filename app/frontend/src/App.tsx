@@ -1169,7 +1169,7 @@ function AssetSection({ title, assets }: { title: string; assets: TemplateAsset[
         <h3 className="text-3xl font-semibold tracking-tight text-zinc-950">{title}</h3>
         <p className="mt-1 text-sm font-medium text-zinc-500">Upload and manage the visual assets used in your game.</p>
       </div>
-      <div className="mt-4 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-5 lg:grid-cols-2 2xl:grid-cols-3">
         {assets.map((asset) => (
           <AssetUploadField
             key={asset.id}
@@ -1268,7 +1268,7 @@ function AssetUploadField({ asset }: { asset: TemplateAsset }) {
   const metadata = buildAssetMetadata(asset.accept, selectedAssets.map((item) => item.size));
 
   return (
-    <div className={cx('rounded-lg border border-zinc-200 bg-white p-5 shadow-sm shadow-zinc-200/80', asset.multiple && 'md:col-span-2 lg:col-span-4')}>
+    <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm shadow-zinc-200/80">
       <div className="grid grid-cols-[48px_minmax(0,1fr)] gap-4">
         <AssetIcon asset={asset} />
         <div className="min-w-0">
