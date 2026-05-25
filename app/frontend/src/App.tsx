@@ -154,7 +154,10 @@ function sectionPathForField(field: ConfigField) {
   return parts.slice(0, -1).join('.');
 }
 
-function sectionLabel(sectionPath: string) {
+function sectionLabel(sectionPath: string, fields: ConfigField[] = []) {
+  const configuredLabel = fields.find((field) => field.sectionLabel)?.sectionLabel;
+  if (configuredLabel) return configuredLabel;
+
   const sectionName = String(sectionPath || '').split('.').at(-1) || sectionPath;
   const acronyms: Record<string, string> = { hud: 'HUD', ui: 'UI' };
   return acronyms[sectionName] || titleize(sectionName);
@@ -169,7 +172,7 @@ function groupConfigFields(fields: ConfigField[] = []) {
     let group = groupByPath.get(sectionPath);
 
     if (!group) {
-      group = { path: sectionPath, label: sectionLabel(sectionPath), fields: [], advancedFields: [] };
+      group = { path: sectionPath, label: sectionLabel(sectionPath, [field]), fields: [], advancedFields: [] };
       groupByPath.set(sectionPath, group);
       groups.push(group);
     }
@@ -1696,7 +1699,7 @@ function ConfigInput({ field, value, onUpdate }: { field: ConfigField; value: un
 
   return (
     <FieldShell label={field.label} hint={field.description}>
-      {field.type === 'number' && Number.isFinite(field.min) && Number.isFinite(field.max) ? (
+      {field.type === 'number' && field.control !== 'input' && Number.isFinite(field.min) && Number.isFinite(field.max) ? (
         <div className="grid grid-cols-[minmax(0,1fr)_88px] gap-2">
           <input
             className="range-input"

@@ -4,8 +4,6 @@ export const GAME_CONFIG = {
     width: 1080,
     // Internal game-world height in pixels.
     height: 1920, 
-    // Width divided by height. For `1080 / 1920`, this is a 9:16 portrait layout.
-    portraitRatio: 9 / 16,
     // Fallback canvas color shown behind the background image, useful when the viewport crops outside the stage.
     backgroundFill: '#0b2545'
   },
@@ -108,8 +106,6 @@ export const GAME_CONFIG = {
     effectVolume: 0.9
   },
   ui: {
-    // When remaining time is at or below this value, the timer HUD switches to warning color.
-    lowTimeWarningSeconds: 5,
     hud: {
       // Top offset from the safe-area top in CSS pixels.
       top: 80,
@@ -123,6 +119,8 @@ export const GAME_CONFIG = {
       timeFontSize: 36,
       // Timer text color.
       timeColor: '#ffffff',
+      // When remaining time is at or below this value, the timer HUD switches to warning color.
+      lowTimeWarningSeconds: 5,
       // Timer warning color when time is low.
       timeWarningColor: '#ffe17a',
       // Progress bar height in CSS pixels.
@@ -130,7 +128,7 @@ export const GAME_CONFIG = {
       // Progress bar border width in CSS pixels.
       progressBorderWidth: 3,
       // Progress bar border color.
-      progressBorderColor: 'rgba(23, 111, 135, 0.82)',
+      progressBorderColor: '#176f87',
       // Progress bar background color.
       progressBackgroundColor: '#207e95',
       // Progress bar fill color.

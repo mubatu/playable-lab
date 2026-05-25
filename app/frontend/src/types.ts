@@ -25,6 +25,8 @@ export interface ConfigField {
   path: string;
   label: string;
   type: FieldType;
+  control?: 'input' | 'slider';
+  sectionLabel?: string;
   description?: string;
   default?: unknown;
   min?: number;
