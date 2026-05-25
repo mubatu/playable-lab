@@ -7,6 +7,7 @@
     {
       "id": "background",
       "label": "Background",
+      "description": "Background shown while the game is being played.",
       "accept": "image/png",
       "required": true,
       "multiple": false,
@@ -15,6 +16,7 @@
     {
       "id": "endBackground",
       "label": "End Background",
+      "description": "Background shown at the end of the game.",
       "accept": "image/png",
       "required": true,
       "multiple": false,
@@ -23,6 +25,7 @@
     {
       "id": "objects",
       "label": "Objects",
+      "description": "Game objects shown in the blast grid.",
       "accept": "image/png",
       "required": true,
       "multiple": true,
@@ -33,6 +36,7 @@
     {
       "id": "soundtrack",
       "label": "Soundtrack",
+      "description": "Looping background music for the playable.",
       "accept": "audio/mpeg,.mp3",
       "required": false,
       "multiple": false,
@@ -41,6 +45,7 @@
     {
       "id": "blast",
       "label": "Blast Sound",
+      "description": "Sound effect played when objects are blasted.",
       "accept": "audio/mpeg,.mp3",
       "required": false,
       "multiple": false,

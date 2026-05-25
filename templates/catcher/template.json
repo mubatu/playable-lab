@@ -7,6 +7,7 @@
     {
       "id": "background",
       "label": "Background",
+      "description": "Background shown while the game is being played.",
       "accept": "image/png",
       "required": false,
       "multiple": false,
@@ -15,6 +16,7 @@
     {
       "id": "endBackground",
       "label": "End Background",
+      "description": "Background shown at the end of the game.",
       "accept": "image/png",
       "required": true,
       "multiple": false,
@@ -23,6 +25,7 @@
     {
       "id": "basket",
       "label": "Basket",
+      "description": "Player-controlled catcher object.",
       "accept": "image/png",
       "required": false,
       "multiple": false,
@@ -31,6 +34,7 @@
     {
       "id": "bomb",
       "label": "Bomb",
+      "description": "Obstacle object the player should avoid.",
       "accept": "image/png",
       "required": false,
       "multiple": false,
@@ -39,6 +43,7 @@
     {
       "id": "hand",
       "label": "Tutorial Hand",
+      "description": "Hand indicator used to guide the player.",
       "accept": "image/png",
       "required": false,
       "multiple": false,
@@ -47,6 +52,7 @@
     {
       "id": "targets",
       "label": "Targets",
+      "description": "Collectible target objects used during gameplay.",
       "accept": "image/png",
       "required": true,
       "multiple": true,
@@ -57,6 +63,7 @@
     {
       "id": "soundtrack",
       "label": "Soundtrack",
+      "description": "Looping background music for the playable.",
       "accept": "audio/mpeg,.mp3",
       "required": false,
       "multiple": false,
@@ -65,6 +72,7 @@
     {
       "id": "catchTarget",
       "label": "Catch Target Sound",
+      "description": "Sound effect played when a target is caught.",
       "accept": "audio/mpeg,.mp3",
       "required": false,
       "multiple": false,
@@ -73,6 +81,7 @@
     {
       "id": "catchBomb",
       "label": "Catch Bomb Sound",
+      "description": "Sound effect played when an obstacle is caught.",
       "accept": "audio/mpeg,.mp3",
       "required": false,
       "multiple": false,
