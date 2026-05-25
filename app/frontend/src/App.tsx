@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import blastIcon from './assets/blast-icon.png';
 import catcherIcon from './assets/catcher-icon.png';
+import playableLabLogo from './assets/playable-lab.png';
 import {
   createPlayable,
   deleteBuildArtifact,
@@ -527,15 +528,15 @@ export default function App() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div className="grid min-h-screen lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="border-b border-white/10 bg-zinc-950/95 px-4 py-4 lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
+        <aside className="border-b border-white/10 bg-zinc-950/95 px-4 py-4 lg:sticky lg:top-0 lg:h-screen lg:self-start lg:overflow-y-auto lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
           <div className="flex items-center justify-between gap-3 lg:block">
             <button
               type="button"
               onClick={() => setView('playables')}
               className="flex items-center gap-3 rounded-md text-left"
             >
-              <span className="grid size-10 place-items-center rounded-md bg-emerald-400 text-zinc-950">
-                <Sparkles className="size-5" />
+              <span className="grid size-10 place-items-center overflow-hidden rounded-md bg-emerald-400">
+                <img src={playableLabLogo} alt="" className="size-full object-cover" />
               </span>
               <span>
                 <span className="block text-base font-semibold">Playable Lab</span>
@@ -556,7 +557,6 @@ export default function App() {
               active={view === 'create'}
               icon={<Plus className="size-4" />}
               label={actionLabels.create}
-              description={`${templates.length} templates`}
               onClick={() => setView('create')}
             />
           </nav>
@@ -648,7 +648,7 @@ function NavButton({
   active: boolean;
   icon: React.ReactNode;
   label: string;
-  description: string;
+  description?: string;
   onClick: () => void;
 }) {
   return (
@@ -665,7 +665,7 @@ function NavButton({
       <span className={cx('grid size-9 place-items-center rounded-md', active ? 'bg-zinc-950/10' : 'bg-white/10')}>{icon}</span>
       <span className="min-w-0">
         <span className="block truncate text-sm font-semibold">{label}</span>
-        <span className={cx('block truncate text-xs', active ? 'text-zinc-800' : 'text-zinc-500')}>{description}</span>
+        {description ? <span className={cx('block truncate text-xs', active ? 'text-zinc-800' : 'text-zinc-500')}>{description}</span> : null}
       </span>
     </button>
   );
