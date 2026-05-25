@@ -29,6 +29,7 @@ const contentTypes = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.svg': 'image/svg+xml',
+  '.mp3': 'audio/mpeg',
   '.zip': 'application/zip'
 };
 
@@ -663,6 +664,19 @@ async function previewPlayable(slug) {
   };
 }
 
+async function previewTemplateDemo(templateId) {
+  await getManifest(templateId);
+  const demoFileName = `${templateId}.html`;
+  const demoPath = safeJoin(join(templatesDir, 'demos'), demoFileName);
+  if (!(await pathExists(demoPath))) throw new Error(`Demo not found for ${templateId}.`);
+
+  return {
+    templateId,
+    path: `demos/${demoFileName}`,
+    url: `/template-demo/${encodeURIComponent(demoFileName)}`
+  };
+}
+
 async function buildPlayable(slug, payload) {
   const playable = await getPlayable(slug);
   const networks = Array.isArray(payload.networks) ? payload.networks : [];
@@ -755,6 +769,32 @@ async function serveGenerated(req, res) {
   }
 }
 
+async function serveTemplateDemo(req, res) {
+  const requestUrl = new URL(req.url, 'http://127.0.0.1');
+  const match = requestUrl.pathname.match(/^\/template-demo\/(.+)$/);
+  if (!match) {
+    sendText(res, 404, 'Not found');
+    return;
+  }
+
+  const relativeFilePath = match[1].split('/').map(decodeURIComponent).join('/');
+  const filePath = safeJoin(join(templatesDir, 'demos'), relativeFilePath);
+
+  try {
+    const fileStats = await stat(filePath);
+    if (!fileStats.isFile()) {
+      sendText(res, 404, 'Not found');
+      return;
+    }
+
+    const ext = extname(filePath);
+    res.writeHead(200, { 'content-type': contentTypes[ext] || 'application/octet-stream' });
+    res.end(await readFile(filePath));
+  } catch {
+    sendText(res, 404, 'Not found');
+  }
+}
+
 async function handleApi(req, res) {
   const requestUrl = new URL(req.url, 'http://127.0.0.1');
 
@@ -796,6 +836,13 @@ async function handleApi(req, res) {
     return;
   }
 
+  const templateDemoMatch = requestUrl.pathname.match(/^\/api\/templates\/([^/]+)\/demo$/);
+  if (req.method === 'POST' && templateDemoMatch) {
+    const demo = await previewTemplateDemo(templateDemoMatch[1]);
+    sendJson(res, 201, { demo });
+    return;
+  }
+
   const buildMatch = requestUrl.pathname.match(/^\/api\/playables\/([^/]+)\/build$/);
   if (req.method === 'POST' && buildMatch) {
     const payload = await readRequestJson(req);
@@ -823,6 +870,10 @@ async function requestHandler(req, res) {
     }
     if (req.url.startsWith('/generated/')) {
       await serveGenerated(req, res);
+      return;
+    }
+    if (req.url.startsWith('/template-demo/')) {
+      await serveTemplateDemo(req, res);
       return;
     }
     if (viteServer) {

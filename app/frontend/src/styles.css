@@ -43,8 +43,8 @@ button:disabled {
 }
 
 .input:focus {
-  border-color: #047857;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
 }
 
 .file-input {
@@ -59,14 +59,14 @@ button:disabled {
 }
 
 .file-input:focus {
-  border-color: #047857;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
   outline: none;
 }
 
 .range-input {
   width: 100%;
-  accent-color: #047857;
+  accent-color: #2563eb;
 }
 
 .color-input {
@@ -76,6 +76,33 @@ button:disabled {
   border-radius: 6px;
   background: #ffffff;
   padding: 4px;
+}
+
+.template-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 224px);
+  gap: 16px;
+  justify-content: start;
+}
+
+.template-card {
+  width: 224px;
+  height: 224px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+@media (max-width: 640px) {
+  .template-picker-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .template-card {
+    width: 100%;
+    max-width: 224px;
+  }
 }
 
 .build-log {

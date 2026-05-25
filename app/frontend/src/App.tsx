@@ -1,10 +1,12 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
+  ArrowLeft,
   Boxes,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
+  Code2,
   ExternalLink,
   FileArchive,
   FolderOpen,
@@ -15,11 +17,13 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
-  Settings2,
   Sparkles,
   Trash2,
+  Video,
   X
 } from 'lucide-react';
+import blastIcon from './assets/blast-icon.png';
+import catcherIcon from './assets/catcher-icon.png';
 import {
   createPlayable,
   deleteBuildArtifact,
@@ -28,6 +32,7 @@ import {
   fetchPlayables,
   fetchTemplates,
   previewPlayable,
+  previewTemplateDemo,
   runPlayableBuild
 } from './api';
 import type {
@@ -181,8 +186,7 @@ export default function App() {
   const [buildsOutputDir, setBuildsOutputDir] = useState('');
   const [buildOptions, setBuildOptions] = useState<BuildOptions | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
-  const [loading, setLoading] = useState({ app: true, playables: false, builds: false, create: false, preview: false, build: false });
-  const [resetKey, setResetKey] = useState(0);
+  const [loading, setLoading] = useState({ app: true, playables: false, builds: false, create: false, preview: false, build: false, templateDemo: '' });
   const formRef = useRef<HTMLFormElement>(null);
 
   const selectedTemplate = templates.find((template) => template.id === selectedTemplateId) || null;
@@ -261,7 +265,7 @@ export default function App() {
     const template = templates.find((item) => item.id === templateId) || null;
     setSelectedTemplateId(templateId);
     setConfigValues(resetValuesForTemplate(template));
-    setResetKey((value) => value + 1);
+    formRef.current?.reset();
   }
 
   function updateConfigValue(path: string, value: unknown) {
@@ -333,7 +337,6 @@ export default function App() {
 
       formRef.current?.reset();
       setConfigValues(resetValuesForTemplate(selectedTemplate));
-      setResetKey((value) => value + 1);
       await refreshPlayables(playable.slug);
       setView('playables');
       showNotice('success', `${playable.name} was created.`);
@@ -362,6 +365,22 @@ export default function App() {
       showNotice('error', error instanceof Error ? error.message : 'Preview failed.');
     } finally {
       setLoading((current) => ({ ...current, preview: false }));
+    }
+  }
+
+  async function handlePreviewTemplateDemo(templateId: string) {
+    const demoWindow = window.open('', '_blank');
+    setLoading((current) => ({ ...current, templateDemo: templateId }));
+
+    try {
+      const url = await previewTemplateDemo(templateId);
+      if (demoWindow) demoWindow.location.href = new URL(url, window.location.origin).href;
+      else showNotice('success', `Demo ready: ${url}`);
+    } catch (error) {
+      if (demoWindow) demoWindow.close();
+      showNotice('error', error instanceof Error ? error.message : 'Template demo failed.');
+    } finally {
+      setLoading((current) => ({ ...current, templateDemo: '' }));
     }
   }
 
@@ -399,7 +418,6 @@ export default function App() {
     if (!selectedTemplate) return;
     formRef.current?.reset();
     setConfigValues(resetValuesForTemplate(selectedTemplate));
-    setResetKey((value) => value + 1);
     showNotice('success', 'Create form reset.');
   }
 
@@ -448,20 +466,20 @@ export default function App() {
 
         <main className="min-w-0 bg-zinc-100 text-zinc-950">
           <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
-            <header className="mb-5 flex flex-col gap-4 border-b border-zinc-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Workspace</p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl">{actionLabels[view]}</h1>
-              </div>
-              {view === 'playables' ? (
+            {view === 'playables' ? (
+              <header className="mb-5 flex flex-col gap-4 border-b border-zinc-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Workspace</p>
+                  <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl">{actionLabels[view]}</h1>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="secondary" onClick={() => void refreshPlayables()} disabled={loading.playables}>
                     <RefreshCw className={cx('size-4', loading.playables && 'animate-spin')} />
                     Refresh
                   </Button>
                 </div>
-              ) : null}
-            </header>
+              </header>
+            ) : null}
 
             <NoticeBanner notice={notice} onDismiss={() => setNotice(null)} />
 
@@ -483,14 +501,14 @@ export default function App() {
               />
             ) : (
               <CreateWorkspace
-                key={resetKey}
                 formRef={formRef}
                 templates={templates}
                 selectedTemplate={selectedTemplate}
-                selectedTemplateId={selectedTemplateId}
                 configValues={configValues}
                 loading={loading.create}
+                demoLoadingTemplateId={loading.templateDemo}
                 onSelectTemplate={selectTemplate}
+                onPreviewTemplate={(templateId) => void handlePreviewTemplateDemo(templateId)}
                 onUpdateConfig={updateConfigValue}
                 onSubmit={(event) => void handleCreate(event)}
                 onReset={handleResetCreateForm}
@@ -557,15 +575,17 @@ function Button({
   onClick,
   type = 'button',
   ariaLabel,
-  iconOnly
+  iconOnly,
+  size = 'md'
 }: {
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'accent' | 'danger';
+  variant?: 'primary' | 'secondary' | 'blue' | 'accent' | 'danger';
   disabled?: boolean;
-  onClick?: () => void;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   type?: 'button' | 'submit';
   ariaLabel?: string;
   iconOnly?: boolean;
+  size?: 'sm' | 'md';
 }) {
   return (
     <button
@@ -574,10 +594,11 @@ function Button({
       onClick={onClick}
       aria-label={ariaLabel}
       className={cx(
-        'inline-flex min-h-10 items-center justify-center gap-2 rounded-md border text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-55',
-        iconOnly ? 'size-10 px-0' : 'px-4',
+        'inline-flex items-center justify-center gap-2 rounded-md border font-semibold transition disabled:cursor-not-allowed disabled:opacity-55',
+        iconOnly ? 'size-10 px-0 text-sm' : size === 'sm' ? 'min-h-9 px-3 text-sm' : 'min-h-10 px-4 text-sm',
         variant === 'primary' && 'border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800',
         variant === 'secondary' && 'border-zinc-300 bg-white text-zinc-800 hover:border-zinc-400 hover:bg-zinc-50',
+        variant === 'blue' && 'border-blue-600 bg-blue-600 text-white hover:border-blue-700 hover:bg-blue-700',
         variant === 'accent' && 'border-amber-500 bg-amber-500 text-zinc-950 hover:border-amber-400 hover:bg-amber-400',
         variant === 'danger' && 'border-red-200 bg-white text-red-700 hover:bg-red-50'
       )}
@@ -820,10 +841,11 @@ function CreateWorkspace({
   formRef,
   templates,
   selectedTemplate,
-  selectedTemplateId,
   configValues,
   loading,
+  demoLoadingTemplateId,
   onSelectTemplate,
+  onPreviewTemplate,
   onUpdateConfig,
   onSubmit,
   onReset
@@ -831,53 +853,95 @@ function CreateWorkspace({
   formRef: React.RefObject<HTMLFormElement | null>;
   templates: PlayableTemplate[];
   selectedTemplate: PlayableTemplate | null;
-  selectedTemplateId: string;
   configValues: Record<string, unknown>;
   loading: boolean;
+  demoLoadingTemplateId: string;
   onSelectTemplate: (id: string) => void;
+  onPreviewTemplate: (id: string) => void;
   onUpdateConfig: (path: string, value: unknown) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onReset: () => void;
 }) {
+  const [step, setStep] = useState<'source' | 'templates' | 'form'>('source');
   const requiredAssets = (selectedTemplate?.assets || []).filter((asset) => asset.required);
   const optionalAssets = (selectedTemplate?.assets || []).filter((asset) => !asset.required);
   const groups = useMemo(() => groupConfigFields(selectedTemplate?.config), [selectedTemplate]);
 
-  return (
-    <section className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-      <aside className="rounded-md border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 px-4 py-3">
-          <p className="text-sm font-semibold text-zinc-950">Templates</p>
-          <p className="mt-1 text-xs text-zinc-500">Choose a source kit to configure.</p>
-        </div>
-        <div className="grid gap-2 p-3">
-          {templates.map((template) => (
-            <button
-              key={template.id}
-              type="button"
-              onClick={() => onSelectTemplate(template.id)}
-              className={cx(
-                'rounded-md border p-3 text-left transition',
-                selectedTemplateId === template.id ? 'border-emerald-300 bg-emerald-50' : 'border-zinc-200 bg-white hover:bg-zinc-50'
-              )}
-            >
-              <span className="block text-sm font-semibold text-zinc-950">{template.name}</span>
-              <span className="mt-1 block text-xs leading-5 text-zinc-500">{template.description || 'Playable template'}</span>
-            </button>
-          ))}
-        </div>
-        <div className="border-t border-zinc-200 p-3">
-          <div className="rounded-md bg-zinc-100 p-3 text-xs leading-5 text-zinc-600">
-            Video and custom creation modes are intentionally parked until their backend flow exists.
+  function openTemplateForm(templateId: string) {
+    onSelectTemplate(templateId);
+    setStep('form');
+  }
+
+  if (step === 'source') {
+    return (
+      <section className="grid gap-4 md:grid-cols-3">
+        <SourceChoiceCard
+          icon={<LayoutTemplate className="size-9" />}
+          title="Template"
+          description="Start from a ready-made playable kit and customize assets, copy, and gameplay settings."
+          advantages={['Fastest path to a build', 'Includes proven game logic', 'Best for repeatable formats']}
+          tone="blue"
+          onClick={() => setStep('templates')}
+        />
+        <SourceChoiceCard
+          icon={<Video className="size-9" />}
+          title="Video"
+          description="Create from video-first assets when the video creation pipeline is ready."
+          advantages={['Built for motion-led ads', 'Keeps source footage central', 'Good for fast creative variants']}
+          tone="purple"
+          disabled
+        />
+        <SourceChoiceCard
+          icon={<Code2 className="size-9" />}
+          title="Custom"
+          description="Begin with a blank bespoke playable flow once custom project scaffolding lands."
+          advantages={['Maximum creative control', 'Flexible interaction design', 'Tailored gameplay structure']}
+          tone="orange"
+          disabled
+        />
+      </section>
+    );
+  }
+
+  if (step === 'templates') {
+    return (
+      <section className="rounded-md border border-zinc-200 bg-white">
+        <div className="flex items-center gap-3 border-b border-zinc-200 px-5 py-4">
+          <Button variant="secondary" iconOnly ariaLabel="Back to creation types" onClick={() => setStep('source')}>
+            <ArrowLeft className="size-4" />
+          </Button>
+          <div>
+            <h2 className="text-2xl font-semibold text-zinc-950">Choose a template</h2>
           </div>
         </div>
-      </aside>
 
+        <div className="template-picker-grid p-5">
+          {templates.map((template) => (
+            <TemplatePlayableCard
+              key={template.id}
+              template={template}
+              demoLoading={demoLoadingTemplateId === template.id}
+              onPreview={() => onPreviewTemplate(template.id)}
+              onCreate={() => openTemplateForm(template.id)}
+            />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section>
       <form ref={formRef} onSubmit={onSubmit} className="rounded-md border border-zinc-200 bg-white">
         <div className="flex flex-col gap-3 border-b border-zinc-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">Template</p>
-            <h2 className="mt-1 text-2xl font-semibold text-zinc-950">{selectedTemplate?.name || 'Template'}</h2>
+          <div className="flex min-w-0 items-center gap-3">
+            <Button variant="secondary" iconOnly ariaLabel="Back to templates" onClick={() => setStep('templates')}>
+              <ArrowLeft className="size-4" />
+            </Button>
+            <div className="min-w-0">
+              <h2 className="truncate text-2xl font-semibold text-zinc-950">{selectedTemplate?.name || 'Template'}</h2>
+              <p className="mt-1 text-sm text-zinc-500">Configure assets and parameters before creating the playable.</p>
+            </div>
           </div>
           <Button variant="secondary" onClick={onReset}>
             <RotateCcw className="size-4" />
@@ -909,13 +973,127 @@ function CreateWorkspace({
         </div>
 
         <div className="flex justify-end border-t border-zinc-200 bg-zinc-50 px-5 py-4">
-          <Button type="submit" disabled={loading || !selectedTemplate}>
+          <Button variant="blue" type="submit" disabled={loading || !selectedTemplate}>
             {loading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
             Create Playable
           </Button>
         </div>
       </form>
     </section>
+  );
+}
+
+function SourceChoiceCard({
+  icon,
+  title,
+  description,
+  advantages,
+  tone,
+  disabled,
+  onClick
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  advantages: string[];
+  tone: 'blue' | 'purple' | 'orange';
+  disabled?: boolean;
+  onClick?: () => void;
+}) {
+  const toneClasses = {
+    blue: 'border-blue-200 bg-blue-50 text-blue-950 hover:border-blue-300 hover:bg-blue-100',
+    purple: 'border-purple-200 bg-purple-50 text-purple-950',
+    orange: 'border-amber-200 bg-amber-50 text-amber-950'
+  };
+  const iconClasses = {
+    blue: 'bg-blue-600 text-white',
+    purple: 'bg-purple-600 text-white',
+    orange: 'bg-amber-500 text-zinc-950'
+  };
+  const bulletClasses = {
+    blue: 'bg-blue-600',
+    purple: 'bg-purple-600',
+    orange: 'bg-amber-500'
+  };
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={cx(
+        'min-h-80 rounded-md border p-6 text-left transition disabled:cursor-not-allowed disabled:opacity-65',
+        toneClasses[tone]
+      )}
+    >
+      <span className={cx('grid size-16 place-items-center rounded-md', iconClasses[tone])}>{icon}</span>
+      <span className="mt-6 block text-2xl font-semibold">{title}</span>
+      <span className="mt-3 block text-sm leading-6 opacity-75">{description}</span>
+      <span className="mt-6 grid gap-3">
+        {advantages.map((advantage) => (
+          <span key={advantage} className="flex items-center gap-2 text-sm font-medium">
+            <span className={cx('size-1.5 rounded-full', bulletClasses[tone])} />
+            {advantage}
+          </span>
+        ))}
+      </span>
+      {disabled ? <span className="mt-6 inline-flex rounded-md bg-white/70 px-3 py-1.5 text-xs font-semibold">Coming soon</span> : null}
+    </button>
+  );
+}
+
+function TemplatePlayableCard({
+  template,
+  demoLoading,
+  onPreview,
+  onCreate
+}: {
+  template: PlayableTemplate;
+  demoLoading: boolean;
+  onPreview: () => void;
+  onCreate: () => void;
+}) {
+  const iconSrc = template.id === 'catcher' ? catcherIcon : template.id === 'blast' ? blastIcon : null;
+
+  return (
+    <article
+      className="template-card cursor-pointer rounded-md border border-zinc-200 bg-white transition hover:border-blue-300 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+      role="button"
+      tabIndex={0}
+      onClick={onCreate}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onCreate();
+        }
+      }}
+    >
+      <div className="grid justify-items-center text-center">
+        <span className="grid size-28 place-items-center rounded-md bg-white">
+          {iconSrc ? (
+            <img className="size-28 object-contain" src={iconSrc} alt="" />
+          ) : (
+            <LayoutTemplate className="size-12 text-blue-600" />
+          )}
+        </span>
+        <h3 className="mt-1 text-lg font-semibold text-zinc-950">{template.name}</h3>
+      </div>
+
+      <div className="grid">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={(event) => {
+            event.stopPropagation();
+            onPreview();
+          }}
+          disabled={demoLoading}
+        >
+          {demoLoading ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
+          Demo
+        </Button>
+      </div>
+    </article>
   );
 }
 
@@ -984,7 +1162,7 @@ function ParameterSection({
       ) : null}
       {group.advancedFields.length > 0 ? (
         <details className="border-t border-zinc-200">
-          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-emerald-800">Advanced</summary>
+          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-blue-700">Advanced</summary>
           <div className="grid gap-3 px-4 pb-4 md:grid-cols-2">
             {group.advancedFields.map((field) => (
               <ConfigInput key={field.path} field={field} value={values[field.path] ?? field.default} onUpdate={onUpdate} />
@@ -1004,7 +1182,7 @@ function ConfigInput({ field, value, onUpdate }: { field: ConfigField; value: un
           <span className="block text-sm font-semibold text-zinc-900">{field.label}</span>
           {field.description ? <span className="mt-1 block text-xs leading-5 text-zinc-500">{field.description}</span> : null}
         </span>
-        <input className="mt-0.5 size-5 accent-emerald-700" id={field.path} name={field.path} type="checkbox" checked={Boolean(value)} onChange={(event) => onUpdate(field.path, event.target.checked)} />
+        <input className="mt-0.5 size-5 accent-blue-600" id={field.path} name={field.path} type="checkbox" checked={Boolean(value)} onChange={(event) => onUpdate(field.path, event.target.checked)} />
       </label>
     );
   }

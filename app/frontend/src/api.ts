@@ -50,6 +50,13 @@ export async function previewPlayable(slug: string): Promise<string> {
   return body.preview.url;
 }
 
+export async function previewTemplateDemo(templateId: string): Promise<string> {
+  const body = await readJson<{ demo: { url: string } }>(
+    await fetch(`/api/templates/${templateId}/demo`, { method: 'POST' })
+  );
+  return body.demo.url;
+}
+
 export async function fetchBuildArtifacts(slug: string): Promise<{ builds: BuildArtifact[]; outputDir: string }> {
   return readJson<{ builds: BuildArtifact[]; outputDir: string }>(await fetch(`/api/playables/${slug}/builds`));
 }
