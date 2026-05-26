@@ -122,7 +122,7 @@ function runBuildCommand(playableDir, network, configPath) {
   });
 }
 
-async function findNewestHtml(root, sinceMs) {
+async function findNewestHtml(root, sinceMs = 0) {
   let newest = null;
 
   async function walk(directory) {
@@ -149,17 +149,21 @@ async function findNewestHtml(root, sinceMs) {
 
 export async function previewPlayable(context, slug) {
   const playable = await getPlayable(context, slug);
+  const outputDir = await getBuildOutputDir(playable);
   const startedAt = Date.now();
   const result = await runBuildCommand(playable.path, 'preview', 'build.json');
 
-  const html = await findNewestHtml(playable.path, startedAt - 1000);
+  const html = (await pathExists(outputDir))
+    ? (await findNewestHtml(outputDir, startedAt - 1000)) || (await findNewestHtml(outputDir))
+    : null;
   if (!html) throw new Error('Preview build completed, but no generated HTML file was found.');
+  const path = relative(playable.path, html.path);
 
   return {
     slug,
     result,
-    path: html.rel,
-    url: `/generated/${encodeURIComponent(slug)}/${html.rel.split('/').map(encodeURIComponent).join('/')}`
+    path,
+    url: `/generated/${encodeURIComponent(slug)}/${path.split('/').map(encodeURIComponent).join('/')}`
   };
 }
 
