@@ -9,7 +9,7 @@ export const GAME_CONFIG = {
   },
   gameplay: {
     // Total game duration before the game ends.
-    durationSeconds: 120,
+    durationSeconds: 30,
     // Zero-based index of the object shown in the HUD as the target. `0` uses `object-1.png`; values are clamped to available objects.
     targetObjectIndex: 0,
     // Number of target objects the player needs to blast before the game ends.
@@ -114,27 +114,31 @@ export const GAME_CONFIG = {
       // Gap between timer and target panels in CSS pixels.
       gap: 12,
       // HUD text size in CSS pixels.
-      fontSize: 30,
+      fontSize: 36,
       // Normal HUD text color.
       textColor: '#ffffff',
       // Timer warning color when time is low.
       warningColor: '#ffe16a',
       // Background color for timer and target panels.
       panelColor: '#121a2c',
+      // Background opacity for timer and target panels.
+      panelOpacity: 0.65,
       // Border color for timer and target panels.
       panelBorderColor: '#ffffff',
       // Target icon size inside the HUD.
       targetIconSize: 48
     },
     instruction: {
-      // Top offset for the instruction text in CSS pixels.
-      top: 170,
       // Instruction text size in CSS pixels.
       fontSize: 30,
       // Instruction text color.
       color: '#ffffff',
-      // Shadow/stroke color used behind the instruction text.
-      strokeColor: '#000000'
+      // Stroke color used around the instruction text.
+      strokeColor: '#000000',
+      // Largest scale used by the repeating instruction pulse.
+      pulseScale: 1.04,
+      // Duration of one instruction pulse cycle in milliseconds.
+      pulseDurationMs: 1100
     },
     endButton: {
       // Text shown on the end screen CTA button.

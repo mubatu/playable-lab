@@ -308,17 +308,6 @@
       "sectionPath": "ui.instruction"
     },
     {
-      "path": "ui.instruction.top",
-      "label": "Instruction Top Offset (CSS px)",
-      "type": "number",
-      "description": "Distance in CSS pixels from the top of the screen to the instruction text.",
-      "min": 0,
-      "max": 1200,
-      "step": 1,
-      "advanced": true,
-      "control": "input"
-    },
-    {
       "path": "ui.instruction.fontSize",
       "label": "Instruction Font Size (CSS px)",
       "type": "number",
@@ -340,8 +329,30 @@
       "path": "ui.instruction.strokeColor",
       "label": "Instruction Stroke Color",
       "type": "color",
-      "description": "Hex color for the shadow or stroke behind the instruction text.",
+      "description": "Hex color for the outline stroke around the instruction text.",
       "advanced": true
+    },
+    {
+      "path": "ui.instruction.pulseScale",
+      "label": "Instruction Pulse Scale",
+      "type": "number",
+      "description": "Largest scale reached by the repeating instruction text pulse. 1 means no size pulse; 1.04 means 4% larger at the peak.",
+      "min": 0.5,
+      "max": 2,
+      "step": 0.01,
+      "advanced": true,
+      "control": "slider"
+    },
+    {
+      "path": "ui.instruction.pulseDurationMs",
+      "label": "Instruction Pulse Duration (ms)",
+      "type": "number",
+      "description": "Duration of one full instruction text pulse cycle, in milliseconds.",
+      "min": 0,
+      "max": 5000,
+      "step": 10,
+      "advanced": true,
+      "control": "input"
     },
     {
       "path": "ui.endButton.text",
@@ -555,6 +566,17 @@
       "type": "color",
       "description": "Hex color for the timer and target panel backgrounds.",
       "advanced": true
+    },
+    {
+      "path": "ui.hud.panelOpacity",
+      "label": "HUD Panel Background Opacity",
+      "type": "number",
+      "description": "Opacity from 0 to 1 for the timer and target panel backgrounds. Text, icons, and borders remain fully opaque.",
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "advanced": true,
+      "control": "slider"
     },
     {
       "path": "ui.hud.panelBorderColor",
