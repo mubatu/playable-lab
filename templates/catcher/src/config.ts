@@ -142,15 +142,15 @@ export const GAME_CONFIG = {
       // Text shown on the end screen CTA button.
       text: 'EXPLORE',
       // Button width in CSS pixels.
-      width: 200,
+      width: 230,
       // Button height in CSS pixels.
-      height: 58,
+      height: 60,
       // Button text size in CSS pixels.
-      fontSize: 26,
+      fontSize: 32,
       // Button center Y position as a percentage of screen height.
-      centerYPercent: 40,
+      centerYPercent: 80,
       // Button background color.
-      backgroundColor: '#f04f23',
+      backgroundColor: '#01349e',
       // Button text color.
       textColor: '#f7f7f7',
       // Largest scale used by the repeating big-small button effect.
