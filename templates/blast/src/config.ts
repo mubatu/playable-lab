@@ -33,7 +33,7 @@ export const GAME_CONFIG = {
     // Corner radius of the single rounded grid panel.
     panelRadius: 34,
     // Fill color of the grid panel behind all objects.
-    panelFillColor: '#f8f1ff',
+    panelFillColor: '#96a7d8',
     // Stroke color around the grid panel.
     panelStrokeColor: '#ffffff',
     // Stroke width around the grid panel.
