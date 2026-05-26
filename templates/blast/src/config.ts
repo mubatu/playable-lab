@@ -101,7 +101,7 @@ export const GAME_CONFIG = {
     // When remaining time is at or below this value, the timer HUD switches to warning color.
     lowTimeWarningSeconds: 10,
     // Text shown between the top HUD and the grid.
-    instructionText: 'BLAST THE GERMS!',
+    instructionText: 'BLAST THE OBJECTS!',
     hud: {
       // Top offset from the safe-area top in CSS pixels.
       top: 60,
