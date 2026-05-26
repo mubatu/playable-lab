@@ -41,7 +41,7 @@ export const GAME_CONFIG = {
     // Drop shadow color for the grid panel.
     panelShadowColor: '#000000',
     // Render size of each object in game-world pixels.
-    objectSize: 120,
+    objectSize: 110,
     // Falling speed for objects after a blast, in game-world pixels per second.
     fallSpeed: 800,
     // Probability that newly generated objects use the target object.
@@ -144,15 +144,15 @@ export const GAME_CONFIG = {
       // Text shown on the end screen CTA button.
       text: 'PLAY NOW!',
       // Button width in CSS pixels.
-      width: 210,
+      width: 230,
       // Button height in CSS pixels.
       height: 60,
       // Button text size in CSS pixels.
-      fontSize: 26,
+      fontSize: 32,
       // Button center Y position as a percentage of screen height.
-      centerYPercent: 85,
+      centerYPercent: 70,
       // Button background color.
-      backgroundColor: '#003678',
+      backgroundColor: '#28ae03',
       // Button text color.
       textColor: '#ffffff',
       // Largest scale used by the repeating big-small button effect.
