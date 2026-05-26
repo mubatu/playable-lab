@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Code2,
   CircleArrowDown,
+  Copy,
   ExternalLink,
   FileArchive,
   FolderOpen,
@@ -26,6 +27,7 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
+  ShoppingBag,
   SlidersHorizontal,
   Sparkles,
   Target,
@@ -74,6 +76,9 @@ const actionLabels: Record<View, string> = {
   playables: 'My Playables',
   create: 'Create Playable'
 };
+
+const hiddenBuildParameterKeys = new Set(['outDir', 'filename']);
+const priorityBuildParameterKeys = ['googlePlayUrl', 'appStoreUrl'];
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ');
@@ -161,6 +166,33 @@ function titleize(value: string) {
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/[-_]+/g, ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function buildFieldLabel(key: string) {
+  if (key === 'googlePlayUrl') return 'Google Play URL';
+  if (key === 'appStoreUrl') return 'App Store URL';
+  return titleize(key);
+}
+
+function buildFieldIcon(key: string) {
+  if (key === 'googlePlayUrl') return <Play className="size-4" />;
+  if (key === 'appStoreUrl') return <ShoppingBag className="size-4" />;
+  return undefined;
+}
+
+function buildConfigEntries(buildConfig: Record<string, unknown>) {
+  return Object.entries(buildConfig)
+    .map(([key, value], index) => ({ key, value, index }))
+    .filter(({ key }) => !hiddenBuildParameterKeys.has(key))
+    .sort((first, second) => {
+      const firstRank = priorityBuildParameterKeys.indexOf(first.key);
+      const secondRank = priorityBuildParameterKeys.indexOf(second.key);
+      const normalizedFirstRank = firstRank === -1 ? priorityBuildParameterKeys.length : firstRank;
+      const normalizedSecondRank = secondRank === -1 ? priorityBuildParameterKeys.length : secondRank;
+
+      return normalizedFirstRank - normalizedSecondRank || first.index - second.index;
+    })
+    .map(({ key, value }) => [key, value] as const);
 }
 
 function sectionPathForField(field: ConfigField) {
@@ -1711,10 +1743,17 @@ function AssetPreviewModal({ preview, onClose }: { preview: AssetPreview; onClos
   );
 }
 
-function FieldShell({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function FieldShell({ label, hint, icon, children }: { label: string; hint?: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
     <label className="block rounded-md border border-zinc-200 bg-zinc-50 p-3">
-      <span className="block text-sm font-semibold text-zinc-900">{label}</span>
+      <span className="flex items-center gap-2 text-sm font-semibold text-zinc-900">
+        {icon ? (
+          <span className="grid size-7 shrink-0 place-items-center rounded-md border border-blue-100 bg-blue-50 text-blue-700">
+            {icon}
+          </span>
+        ) : null}
+        <span>{label}</span>
+      </span>
       <span className="mt-2 block">{children}</span>
       {hint ? <span className="mt-2 block text-xs leading-5 text-zinc-500">{hint}</span> : null}
     </label>
@@ -1883,6 +1922,20 @@ function BuildModal({
   const [networks, setNetworks] = useState<string[]>([]);
   const [buildResult, setBuildResult] = useState<BuildResponse | null>(null);
   const [error, setError] = useState('');
+  const [logCopied, setLogCopied] = useState(false);
+  const consoleRef = useRef<HTMLElement>(null);
+  const buildLogText = building ? 'Building...' : buildResult ? formatBuildResults(buildResult) : error;
+  const consoleStatus = building ? 'Building' : buildResult ? (buildResult.ok ? 'Success' : 'Failed') : error ? 'Failed' : 'Idle';
+  const consoleTone = building ? 'blue' : buildResult?.ok ? 'emerald' : buildResult || error ? 'red' : 'zinc';
+
+  useEffect(() => {
+    if (!building && !buildResult && !error) return;
+    consoleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [buildResult, building, error]);
+
+  useEffect(() => {
+    setLogCopied(false);
+  }, [buildLogText]);
 
   function buildSelectOptions(key: string) {
     if (key === 'language') return options.languages || [];
@@ -1907,6 +1960,16 @@ function BuildModal({
     }
   }
 
+  async function handleCopyLog() {
+    if (!buildLogText) return;
+    try {
+      await navigator.clipboard.writeText(buildLogText);
+      setLogCopied(true);
+    } catch {
+      setLogCopied(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-zinc-950/60 p-4">
       <form onSubmit={(event) => void handleBuild(event)} className="grid max-h-[min(860px,calc(100dvh-32px))] w-full max-w-5xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-md border border-zinc-300 bg-white text-zinc-950 shadow-2xl">
@@ -1924,14 +1987,14 @@ function BuildModal({
           <section>
             <SectionHeading title="Build Parameters" />
             <div className="mt-3 grid gap-3 md:grid-cols-2">
-              {Object.entries(options.buildConfig || {})
-                .filter(([key]) => key !== 'outDir')
-                .map(([key, value]) => {
+              {buildConfigEntries(options.buildConfig || {}).map(([key, value]) => {
                   const selectOptions = buildSelectOptions(key);
                   const current = config[key] ?? value;
+                  const label = buildFieldLabel(key);
+                  const icon = buildFieldIcon(key);
                   if (selectOptions) {
                     return (
-                      <FieldShell key={key} label={titleize(key)}>
+                      <FieldShell key={key} label={label} icon={icon}>
                         <select className="input" value={String(current ?? '')} onChange={(event) => setConfig((existing) => ({ ...existing, [key]: event.target.value }))}>
                           {selectOptions.map((option) => (
                             <option key={option} value={option}>
@@ -1945,13 +2008,13 @@ function BuildModal({
                   if (typeof value === 'boolean') {
                     return (
                       <label key={key} className="flex items-center justify-between gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-3">
-                        <span className="text-sm font-semibold text-zinc-900">{titleize(key)}</span>
+                        <span className="text-sm font-semibold text-zinc-900">{label}</span>
                         <input className="size-5 accent-emerald-700" type="checkbox" checked={Boolean(current)} onChange={(event) => setConfig((existing) => ({ ...existing, [key]: event.target.checked }))} />
                       </label>
                     );
                   }
                   return (
-                    <FieldShell key={key} label={titleize(key)}>
+                    <FieldShell key={key} label={label} icon={icon}>
                       <input
                         className="input"
                         type={typeof value === 'number' ? 'number' : 'text'}
@@ -1996,9 +2059,35 @@ function BuildModal({
             </div>
           </section>
 
-          {error ? <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{error}</div> : null}
-          {building ? <pre className="build-log">Building...</pre> : null}
-          {buildResult ? <pre className="build-log">{formatBuildResults(buildResult)}</pre> : null}
+          <section ref={consoleRef} className="rounded-md border border-zinc-200 bg-white">
+            <div className="flex flex-col gap-3 border-b border-zinc-200 bg-zinc-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-zinc-950">Console Output</h3>
+                  <span
+                    className={cx(
+                      'rounded-md px-2 py-0.5 text-xs font-bold',
+                      consoleTone === 'blue' && 'bg-blue-100 text-blue-700',
+                      consoleTone === 'emerald' && 'bg-emerald-100 text-emerald-700',
+                      consoleTone === 'red' && 'bg-red-100 text-red-700',
+                      consoleTone === 'zinc' && 'bg-zinc-200 text-zinc-600'
+                    )}
+                  >
+                    {consoleStatus}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-zinc-500">Build logs and command output appear here.</p>
+              </div>
+              <Button variant="secondary" size="sm" onClick={() => void handleCopyLog()} disabled={!buildLogText}>
+                <Copy className="size-4" />
+                {logCopied ? 'Copied' : 'Copy Log'}
+              </Button>
+            </div>
+            {error ? <div className="mx-4 mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{error}</div> : null}
+            <div className="p-4">
+              <pre className="build-log">{buildLogText || 'Run a build to see console output.'}</pre>
+            </div>
+          </section>
         </div>
 
         <div className="flex flex-col gap-2 border-t border-zinc-200 bg-zinc-50 px-5 py-4 sm:flex-row sm:justify-end">
