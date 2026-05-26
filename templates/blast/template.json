@@ -40,6 +40,11 @@
       "icon": "Sparkles"
     },
     {
+      "path": "tutorialHand",
+      "label": "Tutorial Hand",
+      "icon": "Hand"
+    },
+    {
       "path": "audio",
       "label": "Audio Levels",
       "icon": "Volume2"
@@ -74,6 +79,15 @@
       "required": true,
       "multiple": false,
       "path": "src/assets/end-background.png"
+    },
+    {
+      "id": "hand",
+      "label": "Tutorial Hand",
+      "description": "Hand indicator used to guide the player toward a matching group.",
+      "accept": "image/png",
+      "required": false,
+      "multiple": false,
+      "path": "src/assets/hand.png"
     },
     {
       "id": "soundtrack",
@@ -650,6 +664,112 @@
       "type": "array",
       "description": "JSON array of hex colors cycled across emitted particles, such as [\"#ffffff\", \"#ffe66d\"].",
       "advanced": true
+    },
+    {
+      "path": "tutorialHand.enabled",
+      "label": "Show Tutorial Hand",
+      "type": "boolean",
+      "description": "Controls whether the animated hand prompt points to a valid matching group.",
+      "advanced": true
+    },
+    {
+      "path": "tutorialHand.idleDelayMs",
+      "label": "Tutorial Hand Idle Delay (ms)",
+      "type": "number",
+      "description": "How long after the latest object tap the hand waits before appearing again.",
+      "min": 0,
+      "max": 5000,
+      "step": 10,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "tutorialHand.width",
+      "label": "Tutorial Hand Width (px)",
+      "type": "number",
+      "description": "Rendered tutorial hand width in game-world pixels.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "tutorialHand.height",
+      "label": "Tutorial Hand Height (px)",
+      "type": "number",
+      "description": "Rendered tutorial hand height in game-world pixels.",
+      "min": 0,
+      "max": 4000,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "tutorialHand.offsetX",
+      "label": "Tutorial Hand X Offset (px)",
+      "type": "number",
+      "description": "Horizontal offset in game-world pixels from the hinted object center to the tutorial hand center.",
+      "min": -4000,
+      "max": 4000,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "tutorialHand.offsetY",
+      "label": "Tutorial Hand Y Offset (px)",
+      "type": "number",
+      "description": "Vertical offset in game-world pixels from the hinted object center to the tutorial hand center.",
+      "min": -4000,
+      "max": 4000,
+      "step": 1,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "tutorialHand.pulseScale",
+      "label": "Tutorial Hand Pulse Scale",
+      "type": "number",
+      "description": "Largest scale reached by the repeating tutorial hand tap pulse. 1 means no size pulse; 1.12 means 12% larger at the peak.",
+      "min": 0.5,
+      "max": 2,
+      "step": 0.01,
+      "advanced": true,
+      "control": "slider"
+    },
+    {
+      "path": "tutorialHand.cycleDurationMs",
+      "label": "Tutorial Hand Cycle Duration (ms)",
+      "type": "number",
+      "description": "Length of one complete tutorial hand pulse cycle, in milliseconds.",
+      "min": 0,
+      "max": 5000,
+      "step": 10,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "tutorialHand.fadeDurationMs",
+      "label": "Tutorial Hand Fade Duration (ms)",
+      "type": "number",
+      "description": "Duration of the fade in when the hand appears and fade out after a player tap.",
+      "min": 0,
+      "max": 2500,
+      "step": 10,
+      "advanced": true,
+      "control": "input"
+    },
+    {
+      "path": "tutorialHand.opacity",
+      "label": "Tutorial Hand Opacity",
+      "type": "number",
+      "description": "Tutorial hand opacity from 0 to 1. Use lower values for a subtler prompt and 1 for fully opaque artwork.",
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "advanced": true,
+      "control": "slider"
     },
     {
       "path": "audio.soundtrackVolume",

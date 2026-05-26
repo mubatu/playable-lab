@@ -69,6 +69,28 @@ export const GAME_CONFIG = {
     // Particle colors are cycled across the emitted circles.
     particleColors: ['#ffffff', '#ffe66d', '#ff8a4a', '#7df8ff']
   },
+  tutorialHand: {
+    // Whether the hand tutorial appears over a valid matching group.
+    enabled: true,
+    // How long after the latest object tap the hand waits before appearing again.
+    idleDelayMs: 1800,
+    // Hand render width in game-world pixels.
+    width: 180,
+    // Hand render height in game-world pixels.
+    height: 180,
+    // Horizontal offset from the hinted object center in game-world pixels.
+    offsetX: 55,
+    // Vertical offset from the hinted object center in game-world pixels.
+    offsetY: 70,
+    // Largest scale used by the repeating tap pulse effect.
+    pulseScale: 1.12,
+    // Duration of one tutorial pulse cycle in milliseconds.
+    cycleDurationMs: 1400,
+    // Duration of the fade in when the hand appears and fade out after a tap.
+    fadeDurationMs: 260,
+    // Hand opacity.
+    opacity: 1
+  },
   audio: {
     // Background music volume multiplier.
     soundtrackVolume: 0.42,

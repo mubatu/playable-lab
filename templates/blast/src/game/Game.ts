@@ -11,6 +11,7 @@ import {
   GridCell
 } from './grid';
 import { calculateViewportLayout, ViewportLayout } from './sizing';
+import { TutorialHand } from './TutorialHand';
 
 interface BlastParticle {
   angle: number;
@@ -45,6 +46,7 @@ export class Game {
   private animationFrame = 0;
   private lastTime = 0;
   private blastEffects: BlastEffect[] = [];
+  private readonly tutorialHand = new TutorialHand();
 
   constructor(canvas: HTMLCanvasElement, images: LoadedImages, callbacks: GameCallbacks) {
     const context = canvas.getContext('2d');
@@ -70,6 +72,7 @@ export class Game {
   markReady(): void {
     this.state.status = 'ready';
     this.lastTime = performance.now();
+    this.tutorialHand.reset(this.lastTime);
     this.callbacks.onHudChange(this.state);
     this.loop(this.lastTime);
   }
@@ -129,6 +132,8 @@ export class Game {
     const cell = getCellAtPoint(this.cells, x, y);
 
     if (!cell || this.isBoardSettling()) return false;
+
+    this.tutorialHand.markObjectTap(performance.now());
 
     if (this.state.status === 'ready') {
       this.start();
@@ -255,6 +260,7 @@ export class Game {
     if (this.state.status !== 'ended') {
       this.renderGrid();
       this.renderBlastEffects();
+      this.renderTutorialHand();
     }
   }
 
@@ -303,6 +309,10 @@ export class Game {
       this.renderBlastRing(effect, progress, alpha);
       this.renderBlastParticles(effect, progress, alpha);
     }
+  }
+
+  private renderTutorialHand(): void {
+    this.tutorialHand.render(this.context, this.images, this.cells, this.isBoardSettling());
   }
 
   private renderBlastRing(effect: BlastEffect, progress: number, alpha: number): void {
