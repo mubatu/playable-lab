@@ -33,7 +33,7 @@ export const GAME_CONFIG = {
     // Corner radius of the single rounded grid panel.
     panelRadius: 34,
     // Fill color of the grid panel behind all objects.
-    panelFillColor: '#96a7d8',
+    panelFillColor: '#d1d9f5',
     // Stroke color around the grid panel.
     panelStrokeColor: '#ffffff',
     // Stroke width around the grid panel.
@@ -150,7 +150,7 @@ export const GAME_CONFIG = {
       // Button text size in CSS pixels.
       fontSize: 32,
       // Button center Y position as a percentage of screen height.
-      centerYPercent: 70,
+      centerYPercent: 73,
       // Button background color.
       backgroundColor: '#28ae03',
       // Button text color.
