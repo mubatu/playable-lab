@@ -696,7 +696,9 @@ async function createPlayable(templateId, payload) {
     await applyConfig(templateDir, playableDir, manifest, payload.config);
 
     if (templateId === 'catcher') {
-      await writeCatcherAssetsModule(playableDir, writtenAssets.targets?.length || 0);
+      const targetAsset = (manifest.assets || []).find((asset) => asset.id === 'targets');
+      const targetCount = writtenAssets.targets?.length || targetAsset?.defaultFiles?.length || 0;
+      await writeCatcherAssetsModule(playableDir, targetCount);
     }
 
     const metadata = {
