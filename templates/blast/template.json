@@ -227,10 +227,9 @@
     },
     {
       "path": "grid.panelFillColor",
-      "label": "Grid Panel Fill Color",
+      "label": "Grid Background Color",
       "type": "color",
       "description": "Hex color for the grid panel fill behind all objects.",
-      "advanced": true
     },
     {
       "path": "grid.panelStrokeColor",
