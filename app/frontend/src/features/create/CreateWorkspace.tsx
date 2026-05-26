@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactNode, RefObject } from 'react';
-import { ArrowLeft, Code2, ImageIcon, LayoutTemplate, Loader2, Play, Plus, RotateCcw, SlidersHorizontal, Video } from 'lucide-react';
+import { ArrowLeft, Code2, ImageIcon, LayoutTemplate, Loader2, Play, Plus, RotateCcw, Save, SlidersHorizontal, Video } from 'lucide-react';
 import blastIcon from '../../assets/blast-icon.png';
 import catcherIcon from '../../assets/catcher-icon.png';
 import type { AssetOptionsById, CreateFormTab } from '../../appTypes';
@@ -12,6 +12,8 @@ import { cx, groupConfigFields } from '../../lib/appUtils';
 
 export function CreateWorkspace({
   formRef,
+  mode,
+  editingPlayableName,
   templates,
   selectedTemplate,
   configValues,
@@ -21,9 +23,12 @@ export function CreateWorkspace({
   onPreviewTemplate,
   onUpdateConfig,
   onSubmit,
-  onReset
+  onReset,
+  onCancel
 }: {
   formRef: RefObject<HTMLFormElement | null>;
+  mode?: 'create' | 'edit';
+  editingPlayableName?: string;
   templates: PlayableTemplate[];
   selectedTemplate: PlayableTemplate | null;
   configValues: Record<string, unknown>;
@@ -32,24 +37,31 @@ export function CreateWorkspace({
   onSelectTemplate: (id: string) => void;
   onPreviewTemplate: (id: string) => void;
   onUpdateConfig: (path: string, value: unknown) => void;
-  onSubmit: (playableName: string) => void;
+  onSubmit: (playableName?: string) => void;
   onReset: () => void;
+  onCancel?: () => void;
 }) {
-  const [step, setStep] = useState<'source' | 'templates' | 'form'>('source');
+  const isEditing = mode === 'edit';
+  const [step, setStep] = useState<'source' | 'templates' | 'form'>(isEditing ? 'form' : 'source');
   const [activeFormTab, setActiveFormTab] = useState<CreateFormTab>('assets');
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
-  const [playableName, setPlayableName] = useState('');
+  const [newPlayableName, setNewPlayableName] = useState('');
   const [assetOptionsById, setAssetOptionsById] = useState<AssetOptionsById>({});
   const assets = selectedTemplate?.assets || [];
+  const assetDefaultsKey = assets.map((asset) => `${asset.id}:${(asset.defaultFiles || []).map((file) => file.url).join(',')}`).join('|');
   const groups = useMemo(() => groupConfigFields(selectedTemplate?.config, selectedTemplate?.configSections), [selectedTemplate]);
   const parameterCount = groups.reduce((count, group) => count + group.fields.length + group.advancedFields.length, 0);
 
   useEffect(() => {
+    setStep(isEditing ? 'form' : 'source');
+  }, [isEditing]);
+
+  useEffect(() => {
     setActiveFormTab(assets.length > 0 ? 'assets' : 'parameters');
     setNameDialogOpen(false);
-    setPlayableName('');
+    setNewPlayableName('');
     setAssetOptionsById({});
-  }, [selectedTemplate?.id, assets.length]);
+  }, [selectedTemplate?.id, assets.length, assetDefaultsKey]);
 
   useEffect(() => {
     if (!selectedTemplate) return;
@@ -77,6 +89,10 @@ export function CreateWorkspace({
 
   function openNameDialog() {
     if (!selectedTemplate || loading) return;
+    if (isEditing) {
+      onSubmit();
+      return;
+    }
     setNameDialogOpen(true);
   }
 
@@ -87,7 +103,7 @@ export function CreateWorkspace({
 
   function handleConfirmCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const trimmedName = playableName.trim();
+    const trimmedName = newPlayableName.trim();
     if (!trimmedName) return;
     setNameDialogOpen(false);
     onSubmit(trimmedName);
@@ -95,11 +111,11 @@ export function CreateWorkspace({
 
   function handleResetClick() {
     setNameDialogOpen(false);
-    setPlayableName('');
+    setNewPlayableName('');
     onReset();
   }
 
-  if (step === 'source') {
+  if (!isEditing && step === 'source') {
     return (
       <section className="grid gap-4 md:grid-cols-3">
         <SourceChoiceCard
@@ -130,7 +146,7 @@ export function CreateWorkspace({
     );
   }
 
-  if (step === 'templates') {
+  if (!isEditing && step === 'templates') {
     return (
       <section className="rounded-md border border-zinc-200 bg-white">
         <div className="flex items-center gap-3 border-b border-zinc-200 px-5 py-4">
@@ -162,11 +178,11 @@ export function CreateWorkspace({
       <form ref={formRef} noValidate onSubmit={handleOpenNameDialog} className="rounded-md border border-zinc-200 bg-white">
         <div className="flex flex-col gap-3 border-b border-zinc-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
           <div className="flex min-w-0 items-center gap-3">
-            <Button variant="secondary" iconOnly ariaLabel="Back to templates" onClick={() => setStep('templates')}>
+            <Button variant="secondary" iconOnly ariaLabel={isEditing ? 'Back to my playables' : 'Back to templates'} onClick={() => (isEditing ? onCancel?.() : setStep('templates'))}>
               <ArrowLeft className="size-4" />
             </Button>
             <div className="min-w-0">
-              <h2 className="truncate text-2xl font-semibold text-zinc-950">{selectedTemplate?.name || 'Template'}</h2>
+              <h2 className="truncate text-2xl font-semibold text-zinc-950">{isEditing ? editingPlayableName || 'Playable' : selectedTemplate?.name || 'Template'}</h2>
             </div>
           </div>
           <Button variant="secondary" type="button" onClick={handleResetClick}>
@@ -215,16 +231,16 @@ export function CreateWorkspace({
 
         <div className="flex justify-end border-t border-zinc-200 bg-zinc-50 px-5 py-4">
           <Button variant="blue" type="button" disabled={loading || !selectedTemplate} onClick={openNameDialog}>
-            {loading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-            Create Playable
+            {loading ? <Loader2 className="size-4 animate-spin" /> : isEditing ? <Save className="size-4" /> : <Plus className="size-4" />}
+            {isEditing ? 'Save Changes' : 'Create Playable'}
           </Button>
         </div>
       </form>
       {nameDialogOpen ? (
         <CreateNameDialog
-          value={playableName}
+          value={newPlayableName}
           loading={loading}
-          onChange={setPlayableName}
+          onChange={setNewPlayableName}
           onClose={() => setNameDialogOpen(false)}
           onSubmit={handleConfirmCreate}
         />

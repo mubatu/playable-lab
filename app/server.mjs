@@ -141,16 +141,24 @@ async function hydrateTemplateAssets(templateId, assets) {
 }
 
 async function listDefaultAssetFiles(templateId, templateDir, asset) {
+  return listAssetFiles(templateDir, asset, (assetPath, size) => buildTemplateAssetPreview(templateId, assetPath, size));
+}
+
+async function listPlayableAssetFiles(slug, playableDir, asset) {
+  return listAssetFiles(playableDir, asset, (assetPath, size) => buildPlayableAssetPreview(slug, assetPath, size));
+}
+
+async function listAssetFiles(baseDir, asset, buildPreview) {
   if (asset.path) {
-    const filePath = safeJoin(templateDir, asset.path);
+    const filePath = safeJoin(baseDir, asset.path);
     if (!(await pathExists(filePath))) return [];
     const fileStats = await stat(filePath);
-    return [buildTemplateAssetPreview(templateId, asset.path, fileStats.size)];
+    return [buildPreview(asset.path, fileStats.size)];
   }
 
   if (!asset.directory || !asset.filePattern) return [];
 
-  const directoryPath = safeJoin(templateDir, asset.directory);
+  const directoryPath = safeJoin(baseDir, asset.directory);
   if (!(await pathExists(directoryPath))) return [];
 
   const matcher = assetPatternMatcher(asset.filePattern);
@@ -162,8 +170,8 @@ async function listDefaultAssetFiles(templateId, templateDir, asset) {
 
   return Promise.all(
     assetPaths.map(async (assetPath) => {
-      const fileStats = await stat(safeJoin(templateDir, assetPath));
-      return buildTemplateAssetPreview(templateId, assetPath, fileStats.size);
+      const fileStats = await stat(safeJoin(baseDir, assetPath));
+      return buildPreview(assetPath, fileStats.size);
     })
   );
 }
@@ -176,13 +184,21 @@ function assetPatternMatcher(pattern) {
 }
 
 function buildTemplateAssetPreview(templateId, assetPath, size) {
+  return buildAssetPreview(assetPath, size, `/template-assets/${encodeURIComponent(templateId)}`);
+}
+
+function buildPlayableAssetPreview(slug, assetPath, size) {
+  return buildAssetPreview(assetPath, size, `/playable-assets/${encodeURIComponent(slug)}`);
+}
+
+function buildAssetPreview(assetPath, size, baseUrl) {
   const name = assetPath.split('/').at(-1) || assetPath;
   const extension = extname(assetPath).toLowerCase();
   return {
     name,
     type: contentTypes[extension] || 'application/octet-stream',
     size,
-    url: `/template-assets/${encodeURIComponent(templateId)}/${assetPath.split('/').map(encodeURIComponent).join('/')}`
+    url: `${baseUrl}/${assetPath.split('/').map(encodeURIComponent).join('/')}`
   };
 }
 
@@ -285,6 +301,38 @@ async function getPlayable(slug) {
     ...metadata,
     slug,
     path: playableDir
+  };
+}
+
+async function getPlayableTemplate(slug) {
+  const playable = await getPlayable(slug);
+  const manifestPath = join(playable.path, 'template.json');
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  const configSource = await readFile(join(playable.path, 'src', 'config.ts'), 'utf8');
+  const config = parseGameConfig(configSource);
+  const descriptions = parseGameConfigDescriptions(configSource);
+  const manifestFields = (manifest.config || []).map((field) => {
+    const defaultValue = getPath(config, field.path);
+    return {
+      ...field,
+      ...(field.description ? {} : { description: descriptions.get(field.path) }),
+      ...(defaultValue === undefined ? {} : { default: defaultValue })
+    };
+  });
+  const existingPaths = new Set(manifestFields.map((field) => field.path));
+  const inferredFields = inferConfigFields(config).filter((field) => !existingPaths.has(field.path));
+
+  return {
+    ...manifest,
+    id: playable.templateId || manifest.id,
+    name: manifest.name || playable.templateName || playable.templateId,
+    assets: await Promise.all(
+      (manifest.assets || []).map(async (asset) => ({
+        ...asset,
+        defaultFiles: await listPlayableAssetFiles(slug, playable.path, asset)
+      }))
+    ),
+    config: [...manifestFields, ...inferredFields]
   };
 }
 
@@ -509,6 +557,21 @@ async function writeAssetFile(outputDir, asset, file, index) {
   return relativePath;
 }
 
+async function clearMultipleAssetFiles(outputDir, asset) {
+  if (!asset.directory || !asset.filePattern) return;
+
+  const directoryPath = safeJoin(outputDir, asset.directory);
+  if (!(await pathExists(directoryPath))) return;
+
+  const matcher = assetPatternMatcher(asset.filePattern);
+  const entries = await readdir(directoryPath, { withFileTypes: true });
+  await Promise.all(
+    entries
+      .filter((entry) => entry.isFile() && matcher.test(entry.name))
+      .map((entry) => rm(safeJoin(directoryPath, entry.name), { force: true }))
+  );
+}
+
 async function applyAssets(outputDir, manifest, uploads = {}) {
   const written = {};
 
@@ -521,6 +584,10 @@ async function applyAssets(outputDir, manifest, uploads = {}) {
     if (asset.min && selectedFileCount < asset.min) throw new Error(`${asset.label} needs at least ${asset.min} file(s).`);
 
     written[asset.id] = [];
+    if (asset.multiple && Array.isArray(uploaded)) {
+      await clearMultipleAssetFiles(outputDir, asset);
+    }
+
     for (let index = 0; index < files.length; index += 1) {
       written[asset.id].push(await writeAssetFile(outputDir, asset, files[index], index + 1));
     }
@@ -646,6 +713,31 @@ async function createPlayable(templateId, payload) {
     await rm(playableDir, { recursive: true, force: true });
     throw error;
   }
+}
+
+async function updatePlayable(slug, payload) {
+  const playable = await getPlayable(slug);
+  const manifest = await getPlayableTemplate(slug);
+  const writtenAssets = await applyAssets(playable.path, manifest, payload.assets);
+  await applyConfig(playable.path, playable.path, manifest, payload.config);
+
+  if (playable.templateId === 'catcher') {
+    const targetAsset = (manifest.assets || []).find((asset) => asset.id === 'targets');
+    const targetCount = writtenAssets.targets?.length || targetAsset?.defaultFiles?.length || 0;
+    await writeCatcherAssetsModule(playable.path, targetCount);
+  }
+
+  const metadata = {
+    name: playable.name,
+    slug: playable.slug,
+    templateId: playable.templateId,
+    templateName: manifest.name || playable.templateName,
+    createdAt: playable.createdAt || null,
+    updatedAt: new Date().toISOString()
+  };
+
+  await writeFile(join(playable.path, 'playable.json'), `${JSON.stringify(metadata, null, 2)}\n`);
+  return metadata;
 }
 
 function normalizeBuildConfig(rawConfig) {
@@ -882,6 +974,33 @@ async function serveTemplateAsset(req, res) {
   }
 }
 
+async function servePlayableAsset(req, res) {
+  const requestUrl = new URL(req.url, 'http://127.0.0.1');
+  const match = requestUrl.pathname.match(/^\/playable-assets\/([^/]+)\/(.+)$/);
+  if (!match) {
+    sendText(res, 404, 'Not found');
+    return;
+  }
+
+  const slug = decodeURIComponent(match[1]);
+  const relativeFilePath = match[2].split('/').map(decodeURIComponent).join('/');
+  const filePath = safeJoin(getPlayableDir(slug), relativeFilePath);
+
+  try {
+    const fileStats = await stat(filePath);
+    if (!fileStats.isFile()) {
+      sendText(res, 404, 'Not found');
+      return;
+    }
+
+    const ext = extname(filePath);
+    res.writeHead(200, { 'content-type': contentTypes[ext] || 'application/octet-stream' });
+    res.end(await readFile(filePath));
+  } catch {
+    sendText(res, 404, 'Not found');
+  }
+}
+
 async function handleApi(req, res) {
   const requestUrl = new URL(req.url, 'http://127.0.0.1');
 
@@ -892,6 +1011,21 @@ async function handleApi(req, res) {
 
   if (req.method === 'GET' && requestUrl.pathname === '/api/playables') {
     sendJson(res, 200, { playables: await listPlayables() });
+    return;
+  }
+
+  const playableTemplateMatch = requestUrl.pathname.match(/^\/api\/playables\/([^/]+)\/template$/);
+  if (req.method === 'GET' && playableTemplateMatch) {
+    const template = await getPlayableTemplate(playableTemplateMatch[1]);
+    sendJson(res, 200, { template });
+    return;
+  }
+
+  const updatePlayableMatch = requestUrl.pathname.match(/^\/api\/playables\/([^/]+)$/);
+  if (req.method === 'PUT' && updatePlayableMatch) {
+    const payload = await readRequestJson(req);
+    const playable = await updatePlayable(updatePlayableMatch[1], payload);
+    sendJson(res, 200, { playable });
     return;
   }
 
@@ -965,6 +1099,10 @@ async function requestHandler(req, res) {
     }
     if (req.url.startsWith('/template-assets/')) {
       await serveTemplateAsset(req, res);
+      return;
+    }
+    if (req.url.startsWith('/playable-assets/')) {
+      await servePlayableAsset(req, res);
       return;
     }
     if (viteServer) {

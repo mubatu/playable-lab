@@ -43,6 +43,28 @@ export async function createPlayable(
   return body.playable;
 }
 
+export async function fetchPlayableTemplate(slug: string): Promise<PlayableTemplate> {
+  const body = await readJson<{ template: PlayableTemplate }>(await fetch(`/api/playables/${slug}/template`));
+  return body.template;
+}
+
+export async function updatePlayable(
+  slug: string,
+  payload: {
+    assets: Record<string, UploadedFilePayload | UploadedFilePayload[]>;
+    config: Record<string, unknown>;
+  }
+): Promise<Playable> {
+  const body = await readJson<{ playable: Playable }>(
+    await fetch(`/api/playables/${slug}`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+  );
+  return body.playable;
+}
+
 export async function previewPlayable(slug: string): Promise<string> {
   const body = await readJson<{ preview: { url: string } }>(
     await fetch(`/api/playables/${slug}/preview`, { method: 'POST' })

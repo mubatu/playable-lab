@@ -7,10 +7,12 @@ import {
   deleteBuildArtifact,
   fetchBuildArtifacts,
   fetchBuildOptions,
+  fetchPlayableTemplate,
   fetchPlayables,
   fetchTemplates,
   previewPlayable,
-  previewTemplateDemo
+  previewTemplateDemo,
+  updatePlayable
 } from './api';
 import type {
   BuildArtifact,
@@ -38,6 +40,8 @@ export default function App() {
   const [playables, setPlayables] = useState<Playable[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [selectedPlayableSlug, setSelectedPlayableSlug] = useState<string>('');
+  const [editingPlayableSlug, setEditingPlayableSlug] = useState<string>('');
+  const [editingTemplate, setEditingTemplate] = useState<PlayableTemplate | null>(null);
   const [configValues, setConfigValues] = useState<Record<string, unknown>>({});
   const [builds, setBuilds] = useState<BuildArtifact[]>([]);
   const [buildsOutputDir, setBuildsOutputDir] = useState('');
@@ -46,8 +50,10 @@ export default function App() {
   const [loading, setLoading] = useState({ app: true, playables: false, builds: false, create: false, preview: false, build: false, templateDemo: '' });
   const formRef = useRef<HTMLFormElement>(null);
 
-  const selectedTemplate = templates.find((template) => template.id === selectedTemplateId) || null;
+  const isEditingPlayable = Boolean(editingPlayableSlug);
+  const selectedTemplate = (isEditingPlayable ? editingTemplate : null) || templates.find((template) => template.id === selectedTemplateId) || null;
   const selectedPlayable = playables.find((playable) => playable.slug === selectedPlayableSlug) || null;
+  const editingPlayable = playables.find((playable) => playable.slug === editingPlayableSlug) || null;
 
   useEffect(() => {
     let cancelled = false;
@@ -120,9 +126,28 @@ export default function App() {
 
   function selectTemplate(templateId: string) {
     const template = templates.find((item) => item.id === templateId) || null;
+    setEditingPlayableSlug('');
+    setEditingTemplate(null);
     setSelectedTemplateId(templateId);
     setConfigValues(resetValuesForTemplate(template));
     formRef.current?.reset();
+  }
+
+  function startCreate() {
+    const template = templates.find((item) => item.id === selectedTemplateId) || templates[0] || null;
+    setEditingPlayableSlug('');
+    setEditingTemplate(null);
+    setSelectedTemplateId(template?.id || '');
+    setConfigValues(resetValuesForTemplate(template));
+    formRef.current?.reset();
+    setView('create');
+  }
+
+  function cancelEdit() {
+    setEditingPlayableSlug('');
+    setEditingTemplate(null);
+    formRef.current?.reset();
+    setView('playables');
   }
 
   function updateConfigValue(path: string, value: unknown) {
@@ -147,7 +172,7 @@ export default function App() {
         throw new Error(`${asset.label} needs at least ${asset.min} file(s).`);
       }
 
-      if (asset.multiple) assets[asset.id] = await Promise.all(files.map(readFileAsDataUrl));
+      if (asset.multiple && files.length > 0) assets[asset.id] = await Promise.all(files.map(readFileAsDataUrl));
       else if (files[0]) assets[asset.id] = await readFileAsDataUrl(files[0]);
     }
 
@@ -200,6 +225,51 @@ export default function App() {
       showNotice('success', `${playable.name} was created.`);
     } catch (error) {
       showNotice('error', error instanceof Error ? error.message : 'Create failed.');
+    } finally {
+      setLoading((current) => ({ ...current, create: false }));
+    }
+  }
+
+  async function handleEditPlayable(playable: Playable) {
+    setLoading((current) => ({ ...current, create: true }));
+    showNotice('info', 'Loading playable settings...');
+
+    try {
+      const template = await fetchPlayableTemplate(playable.slug);
+      setEditingPlayableSlug(playable.slug);
+      setEditingTemplate(template);
+      setSelectedTemplateId(template.id);
+      setConfigValues(resetValuesForTemplate(template));
+      formRef.current?.reset();
+      setView('create');
+      setNotice(null);
+    } catch (error) {
+      showNotice('error', error instanceof Error ? error.message : 'Could not load playable settings.');
+    } finally {
+      setLoading((current) => ({ ...current, create: false }));
+    }
+  }
+
+  async function handleSaveChanges() {
+    if (!selectedTemplate || !editingPlayableSlug) return;
+
+    setLoading((current) => ({ ...current, create: true }));
+    showNotice('info', 'Saving playable changes...');
+
+    try {
+      const playable = await updatePlayable(editingPlayableSlug, {
+        assets: await collectAssets(selectedTemplate),
+        config: collectConfig(selectedTemplate)
+      });
+
+      formRef.current?.reset();
+      setEditingPlayableSlug('');
+      setEditingTemplate(null);
+      await refreshPlayables(playable.slug);
+      setView('playables');
+      showNotice('success', `${playable.name} was updated.`);
+    } catch (error) {
+      showNotice('error', error instanceof Error ? error.message : 'Save failed.');
     } finally {
       setLoading((current) => ({ ...current, create: false }));
     }
@@ -276,7 +346,7 @@ export default function App() {
     if (!selectedTemplate) return;
     formRef.current?.reset();
     setConfigValues(resetValuesForTemplate(selectedTemplate));
-    showNotice('success', 'Create form reset.');
+    showNotice('success', isEditingPlayable ? 'Edit form reset.' : 'Create form reset.');
   }
 
   return (
@@ -286,7 +356,7 @@ export default function App() {
           <div className="flex items-center justify-between gap-3 lg:block">
             <button
               type="button"
-              onClick={() => setView('playables')}
+              onClick={cancelEdit}
               className="flex items-center gap-3 rounded-md text-left"
             >
               <span className="grid size-10 place-items-center overflow-hidden rounded-md bg-emerald-400">
@@ -305,13 +375,13 @@ export default function App() {
               icon={<FolderOpen className="size-4" />}
               label={actionLabels.playables}
               description={`${playables.length} saved`}
-              onClick={() => setView('playables')}
+              onClick={cancelEdit}
             />
             <NavButton
               active={view === 'create'}
               icon={<Plus className="size-4" />}
               label={actionLabels.create}
-              onClick={() => setView('create')}
+              onClick={startCreate}
             />
           </nav>
 
@@ -351,7 +421,8 @@ export default function App() {
                 buildsOutputDir={buildsOutputDir}
                 loading={loading}
                 onSelectPlayable={setSelectedPlayableSlug}
-                onCreate={() => setView('create')}
+                onCreate={startCreate}
+                onEdit={(playable) => void handleEditPlayable(playable)}
                 onPreview={() => void handlePreview()}
                 onBuild={() => void handleOpenBuildDialog()}
                 onDeleteBuild={(path) => void handleDeleteBuild(path)}
@@ -359,6 +430,8 @@ export default function App() {
             ) : (
               <CreateWorkspace
                 formRef={formRef}
+                mode={isEditingPlayable ? 'edit' : 'create'}
+                editingPlayableName={editingPlayable?.name}
                 templates={templates}
                 selectedTemplate={selectedTemplate}
                 configValues={configValues}
@@ -367,8 +440,9 @@ export default function App() {
                 onSelectTemplate={selectTemplate}
                 onPreviewTemplate={(templateId) => void handlePreviewTemplateDemo(templateId)}
                 onUpdateConfig={updateConfigValue}
-                onSubmit={(playableName) => void handleCreate(playableName)}
+                onSubmit={(playableName) => void (isEditingPlayable ? handleSaveChanges() : handleCreate(playableName || ''))}
                 onReset={handleResetCreateForm}
+                onCancel={cancelEdit}
               />
             )}
           </div>

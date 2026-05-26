@@ -59,6 +59,7 @@ export interface Playable {
   templateId: string;
   templateName?: string;
   createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface BuildArtifact {

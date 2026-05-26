@@ -1,4 +1,4 @@
-import { Boxes, CalendarDays, ChevronRight, ExternalLink, FileArchive, FolderOpen, Hammer, LayoutTemplate, Loader2, Play, Plus, Trash2 } from 'lucide-react';
+import { Boxes, CalendarDays, ChevronRight, ExternalLink, FileArchive, FolderOpen, Hammer, LayoutTemplate, Loader2, Pencil, Play, Plus, Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { BuildArtifact, Playable } from '../../types';
 import { Button } from '../../components/ui';
@@ -13,6 +13,7 @@ export function PlayablesWorkspace({
   loading,
   onSelectPlayable,
   onCreate,
+  onEdit,
   onPreview,
   onBuild,
   onDeleteBuild
@@ -25,6 +26,7 @@ export function PlayablesWorkspace({
   loading: { builds: boolean; preview: boolean; build: boolean };
   onSelectPlayable: (slug: string) => void;
   onCreate: () => void;
+  onEdit: (playable: Playable) => void;
   onPreview: () => void;
   onBuild: () => void;
   onDeleteBuild: (path: string) => void;
@@ -82,7 +84,13 @@ export function PlayablesWorkspace({
             <div className="border-b border-zinc-200 pb-5">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="min-w-0">
-                  <h2 className="truncate text-2xl font-semibold text-zinc-950">{selectedPlayable.name}</h2>
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <h2 className="truncate text-2xl font-semibold text-zinc-950">{selectedPlayable.name}</h2>
+                    <Button variant="secondary" size="sm" onClick={() => onEdit(selectedPlayable)}>
+                      <Pencil className="size-4" />
+                      Edit
+                    </Button>
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button onClick={onPreview} disabled={loading.preview}>
