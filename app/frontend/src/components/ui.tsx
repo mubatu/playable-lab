@@ -1,4 +1,4 @@
-import type { MouseEvent, ReactNode } from 'react';
+import type { CSSProperties, MouseEvent, ReactNode } from 'react';
 import { AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react';
 import type { Notice } from '../appTypes';
 import { cx } from '../lib/appUtils';
@@ -43,14 +43,15 @@ export function Button({
   );
 }
 
-export function NoticeBanner({ notice, onDismiss }: { notice: Notice; onDismiss: () => void }) {
+export function NoticeBanner({ notice, onDismiss, timeoutMs }: { notice: Notice; onDismiss: () => void; timeoutMs: number }) {
   if (!notice) return null;
   const Icon = notice.type === 'success' ? CheckCircle2 : notice.type === 'error' ? AlertCircle : Loader2;
+  const progressStyle = { animationDuration: `${timeoutMs}ms` } satisfies CSSProperties;
   return (
     <div
       role={notice.type === 'error' ? 'alert' : 'status'}
       className={cx(
-        'fixed right-4 top-4 z-50 flex w-[min(calc(100vw-2rem),24rem)] items-start justify-between gap-3 rounded-md border px-4 py-3 text-sm shadow-lg sm:right-6 sm:top-6',
+        'fixed right-4 top-4 z-50 flex w-[min(calc(100vw-2rem),24rem)] items-start justify-between gap-3 overflow-hidden rounded-md border px-4 pb-4 pt-3 text-sm shadow-lg sm:right-6 sm:top-6',
         notice.type === 'success' && 'border-emerald-200 bg-emerald-50 text-emerald-900',
         notice.type === 'error' && 'border-red-200 bg-red-50 text-red-900',
         notice.type === 'info' && 'border-blue-200 bg-blue-50 text-blue-900'
@@ -63,6 +64,15 @@ export function NoticeBanner({ notice, onDismiss }: { notice: Notice; onDismiss:
       <button type="button" onClick={onDismiss} className="rounded-md p-1 opacity-70 hover:bg-black/5 hover:opacity-100" aria-label="Dismiss">
         <X className="size-4" />
       </button>
+      <div
+        className={cx(
+          'notice-progress absolute bottom-0 left-0 h-1 w-full',
+          notice.type === 'success' && 'bg-emerald-500',
+          notice.type === 'error' && 'bg-red-500',
+          notice.type === 'info' && 'bg-blue-500'
+        )}
+        style={progressStyle}
+      />
     </div>
   );
 }

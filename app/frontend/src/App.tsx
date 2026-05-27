@@ -49,6 +49,7 @@ export default function App() {
   const [buildsOutputDir, setBuildsOutputDir] = useState('');
   const [buildOptions, setBuildOptions] = useState<BuildOptions | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
+  const [noticeVersion, setNoticeVersion] = useState(0);
   const [loading, setLoading] = useState({ app: true, playables: false, builds: false, create: false, preview: false, build: false, templateDemo: '' });
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -71,7 +72,7 @@ export default function App() {
         setConfigValues(resetValuesForTemplate(templateList[0] || null));
         setSelectedPlayableSlug(playableList[0]?.slug || '');
       } catch (error) {
-        setNotice({ type: 'error', message: error instanceof Error ? error.message : 'Could not load lab data.' });
+        showNotice('error', error instanceof Error ? error.message : 'Could not load lab data.');
       } finally {
         if (!cancelled) setLoading((current) => ({ ...current, app: false }));
       }
@@ -104,6 +105,7 @@ export default function App() {
 
   function showNotice(type: NonNullable<Notice>['type'], message: string) {
     setNotice({ type, message });
+    setNoticeVersion((current) => current + 1);
   }
 
   async function refreshPlayables(preferredSlug = selectedPlayableSlug) {
@@ -420,7 +422,7 @@ export default function App() {
               </header>
             ) : null}
 
-            <NoticeBanner notice={notice} onDismiss={() => setNotice(null)} />
+            <NoticeBanner key={noticeVersion} notice={notice} timeoutMs={NOTICE_TIMEOUT_MS} onDismiss={() => setNotice(null)} />
 
             {loading.app ? (
               <LoadingPanel />
