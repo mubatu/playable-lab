@@ -1,5 +1,7 @@
 import { imageSources } from '../assets';
 import { GAME_CONFIG } from '../config';
+import { getGridMetrics } from '../game/grid';
+import { ViewportLayout } from '../game/sizing';
 
 export class Hud {
   private readonly element: HTMLDivElement;
@@ -56,11 +58,17 @@ export class Hud {
     this.instructionElement.style.display = 'block';
   }
 
-  private formatTime(totalSeconds: number): string {
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
+  updateLayout(layout: ViewportLayout): void {
+    const hudBottom = this.element.getBoundingClientRect().bottom;
+    const grid = getGridMetrics();
+    const gridTop = (layout.offsetY + grid.y * layout.scale) / layout.dpr;
+    const instructionCenterY = (hudBottom + gridTop) / 2;
 
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    this.instructionElement.style.setProperty('--instruction-center-y', `${instructionCenterY}px`);
+  }
+
+  private formatTime(totalSeconds: number): string {
+    return String(totalSeconds);
   }
 
   private getTargetImageSource(): string {
@@ -79,13 +87,29 @@ export class Hud {
     this.element.style.setProperty('--hud-font-size', `${hud.fontSize}px`);
     this.element.style.setProperty('--hud-text-color', hud.textColor);
     this.element.style.setProperty('--hud-warning-color', hud.warningColor);
-    this.element.style.setProperty('--hud-panel-color', hud.panelColor);
+    this.element.style.setProperty('--hud-panel-background', this.withOpacity(hud.panelColor, hud.panelOpacity));
     this.element.style.setProperty('--hud-panel-border-color', hud.panelBorderColor);
     this.element.style.setProperty('--hud-target-icon-size', `${hud.targetIconSize}px`);
 
-    this.instructionElement.style.setProperty('--instruction-top', `${instruction.top}px`);
     this.instructionElement.style.setProperty('--instruction-font-size', `${instruction.fontSize}px`);
     this.instructionElement.style.setProperty('--instruction-color', instruction.color);
     this.instructionElement.style.setProperty('--instruction-stroke-color', instruction.strokeColor);
+    this.instructionElement.style.setProperty('--instruction-pulse-scale', String(instruction.pulseScale));
+    this.instructionElement.style.setProperty('--instruction-pulse-duration', `${instruction.pulseDurationMs}ms`);
+  }
+
+  private withOpacity(hexColor: string, opacity: number): string {
+    const normalized = hexColor.replace('#', '');
+    const alpha = Math.max(0, Math.min(1, opacity));
+
+    if (!/^[\da-f]{6}$/i.test(normalized)) {
+      return hexColor;
+    }
+
+    const red = parseInt(normalized.slice(0, 2), 16);
+    const green = parseInt(normalized.slice(2, 4), 16);
+    const blue = parseInt(normalized.slice(4, 6), 16);
+
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
   }
 }

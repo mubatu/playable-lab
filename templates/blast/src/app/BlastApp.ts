@@ -76,6 +76,11 @@ export class BlastApp {
 
   resize(width: number, height: number): void {
     this.game?.resize(width, height);
+    const layout = this.game?.getLayout();
+
+    if (layout) {
+      this.hud.updateLayout(layout);
+    }
   }
 
   pause(): void {

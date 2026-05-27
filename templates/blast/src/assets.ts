@@ -1,11 +1,13 @@
 import soundtrack from './assets/soundtrack.mp3';
 import blast from './assets/blast.mp3';
+import hand from './assets/hand.png';
 
 const imageContext = require.context('./assets', false, /\.png$/);
 
 export const imageSources = {
   background: getRequiredImageSource('background.png'),
   endBackground: getImageSource('end-background.png') ?? getRequiredImageSource('background.png'),
+  hand,
   objects: getSortedObjectSources()
 };
 
@@ -17,6 +19,7 @@ export const audioSources = {
 export interface LoadedImages {
   background: HTMLImageElement;
   endBackground: HTMLImageElement;
+  hand: HTMLImageElement;
   objects: HTMLImageElement[];
 }
 
@@ -34,15 +37,17 @@ export async function loadImages(): Promise<LoadedImages> {
     throw new Error('Blast template requires at least one object image matching src/assets/object-{index}.png');
   }
 
-  const [backgroundImage, endBackgroundImage, ...objectImages] = await Promise.all([
+  const [backgroundImage, endBackgroundImage, handImage, ...objectImages] = await Promise.all([
     loadImage(imageSources.background),
     loadImage(imageSources.endBackground),
+    loadImage(imageSources.hand),
     ...imageSources.objects.map(loadImage)
   ]);
 
   return {
     background: backgroundImage,
     endBackground: endBackgroundImage,
+    hand: handImage,
     objects: objectImages
   };
 }

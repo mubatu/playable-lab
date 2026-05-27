@@ -4,14 +4,12 @@ export const GAME_CONFIG = {
     width: 1080,
     // Internal game-world height in pixels.
     height: 1920,
-    // Width divided by height. For `1080 / 1920`, this is a 9:16 portrait layout.
-    portraitRatio: 9 / 16,
     // Fallback canvas color shown behind the background image, useful when the viewport crops outside the stage.
     backgroundFill: '#101521'
   },
   gameplay: {
     // Total game duration before the game ends.
-    durationSeconds: 120,
+    durationSeconds: 30,
     // Zero-based index of the object shown in the HUD as the target. `0` uses `object-1.png`; values are clamped to available objects.
     targetObjectIndex: 0,
     // Number of target objects the player needs to blast before the game ends.
@@ -35,15 +33,15 @@ export const GAME_CONFIG = {
     // Corner radius of the single rounded grid panel.
     panelRadius: 34,
     // Fill color of the grid panel behind all objects.
-    panelFillColor: 'rgba(248, 241, 255, 0.9)',
+    panelFillColor: '#d1d9f5',
     // Stroke color around the grid panel.
-    panelStrokeColor: 'rgba(255, 255, 255, 0.96)',
+    panelStrokeColor: '#ffffff',
     // Stroke width around the grid panel.
     panelStrokeWidth: 5,
     // Drop shadow color for the grid panel.
-    panelShadowColor: 'rgba(0, 0, 0, 0.2)',
+    panelShadowColor: '#000000',
     // Render size of each object in game-world pixels.
-    objectSize: 120,
+    objectSize: 110,
     // Falling speed for objects after a blast, in game-world pixels per second.
     fallSpeed: 800,
     // Probability that newly generated objects use the target object.
@@ -61,7 +59,7 @@ export const GAME_CONFIG = {
     // Initial stroke width of the blast ring.
     ringWidth: 7,
     // Color of the blast ring.
-    ringColor: 'rgba(255, 255, 255, 0.86)',
+    ringColor: '#ffffff',
     // Number of small circle particles emitted per blasted object.
     particleCount: 18,
     // Maximum distance particles travel from the blasted object.
@@ -70,6 +68,28 @@ export const GAME_CONFIG = {
     particleSize: 8,
     // Particle colors are cycled across the emitted circles.
     particleColors: ['#ffffff', '#ffe66d', '#ff8a4a', '#7df8ff']
+  },
+  tutorialHand: {
+    // Whether the hand tutorial appears over a valid matching group.
+    enabled: true,
+    // How long after the latest object tap the hand waits before appearing again.
+    idleDelayMs: 1800,
+    // Hand render width in game-world pixels.
+    width: 180,
+    // Hand render height in game-world pixels.
+    height: 180,
+    // Horizontal offset from the hinted object center in game-world pixels.
+    offsetX: 55,
+    // Vertical offset from the hinted object center in game-world pixels.
+    offsetY: 70,
+    // Largest scale used by the repeating tap pulse effect.
+    pulseScale: 1.12,
+    // Duration of one tutorial pulse cycle in milliseconds.
+    cycleDurationMs: 1400,
+    // Duration of the fade in when the hand appears and fade out after a tap.
+    fadeDurationMs: 260,
+    // Hand opacity.
+    opacity: 1
   },
   audio: {
     // Background music volume multiplier.
@@ -81,7 +101,7 @@ export const GAME_CONFIG = {
     // When remaining time is at or below this value, the timer HUD switches to warning color.
     lowTimeWarningSeconds: 10,
     // Text shown between the top HUD and the grid.
-    instructionText: 'BLAST THE GERMS!',
+    instructionText: 'BLAST THE OBJECTS!',
     hud: {
       // Top offset from the safe-area top in CSS pixels.
       top: 60,
@@ -94,41 +114,45 @@ export const GAME_CONFIG = {
       // Gap between timer and target panels in CSS pixels.
       gap: 12,
       // HUD text size in CSS pixels.
-      fontSize: 30,
+      fontSize: 36,
       // Normal HUD text color.
       textColor: '#ffffff',
       // Timer warning color when time is low.
       warningColor: '#ffe16a',
       // Background color for timer and target panels.
-      panelColor: 'rgba(18, 26, 44, 0.72)',
+      panelColor: '#121a2c',
+      // Background opacity for timer and target panels.
+      panelOpacity: 0.65,
       // Border color for timer and target panels.
-      panelBorderColor: 'rgba(255, 255, 255, 0.36)',
+      panelBorderColor: '#ffffff',
       // Target icon size inside the HUD.
       targetIconSize: 48
     },
     instruction: {
-      // Top offset for the instruction text in CSS pixels.
-      top: 170,
       // Instruction text size in CSS pixels.
       fontSize: 30,
       // Instruction text color.
       color: '#ffffff',
-      // Shadow/stroke color used behind the instruction text.
-      strokeColor: 'rgba(0, 0, 0, 0.4)'
+      // Stroke color used around the instruction text.
+      strokeColor: '#000000',
+      // Largest scale used by the repeating instruction pulse.
+      pulseScale: 1.04,
+      // Duration of one instruction pulse cycle in milliseconds.
+      pulseDurationMs: 1100
     },
     endButton: {
       // Text shown on the end screen CTA button.
       text: 'PLAY NOW!',
       // Button width in CSS pixels.
-      width: 210,
+      width: 230,
       // Button height in CSS pixels.
       height: 60,
       // Button text size in CSS pixels.
-      fontSize: 26,
+      fontSize: 32,
       // Button center Y position as a percentage of screen height.
-      centerYPercent: 85,
+      centerYPercent: 73,
       // Button background color.
-      backgroundColor: '#003678',
+      backgroundColor: '#28ae03',
       // Button text color.
       textColor: '#ffffff',
       // Largest scale used by the repeating big-small button effect.
