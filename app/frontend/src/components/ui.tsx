@@ -48,16 +48,17 @@ export function NoticeBanner({ notice, onDismiss }: { notice: Notice; onDismiss:
   const Icon = notice.type === 'success' ? CheckCircle2 : notice.type === 'error' ? AlertCircle : Loader2;
   return (
     <div
+      role={notice.type === 'error' ? 'alert' : 'status'}
       className={cx(
-        'mb-5 flex items-start justify-between gap-3 rounded-md border px-4 py-3 text-sm',
+        'fixed right-4 top-4 z-50 flex w-[min(calc(100vw-2rem),24rem)] items-start justify-between gap-3 rounded-md border px-4 py-3 text-sm shadow-lg sm:right-6 sm:top-6',
         notice.type === 'success' && 'border-emerald-200 bg-emerald-50 text-emerald-900',
         notice.type === 'error' && 'border-red-200 bg-red-50 text-red-900',
         notice.type === 'info' && 'border-blue-200 bg-blue-50 text-blue-900'
       )}
     >
-      <div className="flex gap-3">
+      <div className="flex min-w-0 gap-3">
         <Icon className={cx('mt-0.5 size-4 shrink-0', notice.type === 'info' && 'animate-spin')} />
-        <p>{notice.message}</p>
+        <p className="min-w-0 break-words">{notice.message}</p>
       </div>
       <button type="button" onClick={onDismiss} className="rounded-md p-1 opacity-70 hover:bg-black/5 hover:opacity-100" aria-label="Dismiss">
         <X className="size-4" />

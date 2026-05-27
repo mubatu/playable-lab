@@ -34,6 +34,8 @@ const actionLabels: Record<View, string> = {
   create: 'Create Playable'
 };
 
+const NOTICE_TIMEOUT_MS = 5000;
+
 export default function App() {
   const [view, setView] = useState<View>('playables');
   const [templates, setTemplates] = useState<PlayableTemplate[]>([]);
@@ -89,6 +91,16 @@ export default function App() {
     }
     void refreshBuilds(selectedPlayableSlug);
   }, [selectedPlayableSlug]);
+
+  useEffect(() => {
+    if (!notice) return;
+
+    const timeout = window.setTimeout(() => {
+      setNotice((current) => (current === notice ? null : current));
+    }, NOTICE_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timeout);
+  }, [notice]);
 
   function showNotice(type: NonNullable<Notice>['type'], message: string) {
     setNotice({ type, message });
