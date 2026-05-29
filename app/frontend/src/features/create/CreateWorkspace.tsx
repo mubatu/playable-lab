@@ -385,7 +385,7 @@ function SourceChoiceCard({
 }) {
   const toneClasses = {
     blue: 'border-blue-200 bg-blue-50 text-blue-950 hover:border-blue-300 hover:bg-blue-100',
-    purple: 'border-purple-200 bg-purple-50 text-purple-950',
+    purple: 'border-purple-200 bg-purple-50 text-purple-950 hover:border-purple-300 hover:bg-purple-100',
     orange: 'border-amber-200 bg-amber-50 text-amber-950'
   };
   const iconClasses = {
