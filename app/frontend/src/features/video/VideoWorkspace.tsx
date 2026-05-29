@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
-import { ArrowLeft, Check, Hand, Loader2, Plus, Save, Scissors, Trash2, Upload, Video } from 'lucide-react';
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Hand, Loader2, Pause, Play, Plus, Save, Scissors, Trash2, Upload } from 'lucide-react';
 import type { VideoDraft, VideoPlayable, VideoStopover } from '../../types';
 import { Button } from '../../components/ui';
 import { cx, formatBytes } from '../../lib/appUtils';
@@ -113,7 +113,7 @@ export function VideoWorkspace({
             <ArrowLeft className="size-4" />
           </Button>
           <div className="min-w-0">
-            <h2 className="truncate text-2xl font-semibold text-zinc-950">{isEditing ? initialPlayable?.name || 'Video playable' : 'Video editor'}</h2>
+            <h2 className="truncate text-2xl font-semibold text-zinc-950">{isEditing ? initialPlayable?.name || 'Video playable' : 'Video Editor'}</h2>
             <p className="mt-1 truncate text-sm text-zinc-500">
               {source.name} · {formatBytes(source.size)}
             </p>
@@ -207,6 +207,8 @@ function VideoStopoverEditor({
   const frameRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
+  const frameDurationRef = useRef(1 / 30);
+  const frameSampleRef = useRef<{ mediaTime: number; presentedFrames: number } | null>(null);
   const dragRef = useRef<{
     kind: DragKind;
     pointerId: number;
@@ -216,6 +218,7 @@ function VideoStopoverEditor({
   } | null>(null);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [layout, setLayout] = useState<VideoLayout>({ x: 0, y: 0, width: 1, height: 1 });
   const [phase, setPhase] = useState<EditPhase>('idle');
   const [draftStopover, setDraftStopover] = useState<DraftStopover | null>(null);
@@ -228,9 +231,38 @@ function VideoStopoverEditor({
     video.pause();
     video.currentTime = 0;
     setCurrentTime(0);
+    setIsPlaying(false);
     setDuration(0);
+    frameDurationRef.current = 1 / 30;
+    frameSampleRef.current = null;
     setPhase('idle');
     setDraftStopover(null);
+  }, [source.url]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !('requestVideoFrameCallback' in video)) return;
+    let active = true;
+    let callbackId = 0;
+
+    const handleFrame: VideoFrameRequestCallback = (_now, metadata) => {
+      const previous = frameSampleRef.current;
+      if (previous && metadata.presentedFrames > previous.presentedFrames && metadata.mediaTime > previous.mediaTime) {
+        const frameCount = metadata.presentedFrames - previous.presentedFrames;
+        frameDurationRef.current = (metadata.mediaTime - previous.mediaTime) / frameCount;
+      }
+      frameSampleRef.current = {
+        mediaTime: metadata.mediaTime,
+        presentedFrames: metadata.presentedFrames
+      };
+      if (active) callbackId = video.requestVideoFrameCallback(handleFrame);
+    };
+
+    callbackId = video.requestVideoFrameCallback(handleFrame);
+    return () => {
+      active = false;
+      video.cancelVideoFrameCallback(callbackId);
+    };
   }, [source.url]);
 
   useEffect(() => {
@@ -287,6 +319,23 @@ function VideoStopoverEditor({
       video.currentTime = nextTime;
     }
     setCurrentTime(nextTime);
+  }
+
+  function togglePlayback() {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      void video.play();
+    } else {
+      video.pause();
+    }
+  }
+
+  function stepFrame(direction: -1 | 1) {
+    const video = videoRef.current;
+    video?.pause();
+    const frameDuration = Number.isFinite(frameDurationRef.current) && frameDurationRef.current > 0 ? frameDurationRef.current : 1 / 30;
+    seekTo((video?.currentTime || currentTime) + direction * frameDuration);
   }
 
   function seekToPointer(clientX: number) {
@@ -396,6 +445,9 @@ function VideoStopoverEditor({
                 updateVideoLayout();
               }}
               onLoadedData={updateVideoLayout}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onEnded={() => setIsPlaying(false)}
               onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
             />
 
@@ -493,10 +545,15 @@ function VideoStopoverEditor({
       <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4">
         <div className="mb-3 flex items-center justify-between gap-3 text-sm font-semibold text-zinc-700">
           <span>{formatTime(currentTime)}</span>
-          <div className="flex gap-2">
-            <Button size="sm" variant="secondary" onClick={() => (videoRef.current?.paused ? void videoRef.current.play() : videoRef.current?.pause())}>
-              <Video className="size-4" />
-              Play/Pause
+          <div className="flex gap-2" aria-label="Playback controls">
+            <Button variant="secondary" iconOnly ariaLabel="Previous frame" onClick={() => stepFrame(-1)}>
+              <ChevronLeft className="size-4" />
+            </Button>
+            <Button variant="secondary" iconOnly ariaLabel={isPlaying ? 'Pause video' : 'Play video'} onClick={togglePlayback}>
+              {isPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}
+            </Button>
+            <Button variant="secondary" iconOnly ariaLabel="Next frame" onClick={() => stepFrame(1)}>
+              <ChevronRight className="size-4" />
             </Button>
           </div>
           <span>{formatTime(duration)}</span>
