@@ -169,7 +169,7 @@ function VideoUploadPanel({
           <ArrowLeft className="size-4" />
         </Button>
         <div>
-          <h2 className="text-2xl font-semibold text-zinc-950">Upload gameplay video</h2>
+          <h2 className="text-2xl font-semibold text-zinc-950">Upload a video</h2>
         </div>
       </div>
 
@@ -204,6 +204,7 @@ function VideoStopoverEditor({
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
     kind: DragKind;
     pointerId: number;
@@ -267,10 +268,34 @@ function VideoStopoverEditor({
     setLayout(computeVideoLayout(frameRef.current, videoRef.current));
   }
 
+  function getSeekDuration() {
+    const liveDuration = videoRef.current?.duration;
+    if (typeof liveDuration === 'number' && Number.isFinite(liveDuration) && liveDuration > 0) {
+      return liveDuration;
+    }
+    return duration;
+  }
+
   function seekTo(seconds: number) {
-    const nextTime = Math.max(0, Math.min(duration || 0, seconds));
-    if (videoRef.current) videoRef.current.currentTime = nextTime;
+    const seekDuration = getSeekDuration();
+    if (!Number.isFinite(seconds) || !Number.isFinite(seekDuration) || seekDuration <= 0) return;
+    const nextTime = Math.max(0, Math.min(seekDuration, seconds));
+    const video = videoRef.current;
+    if (video) {
+      video.currentTime = nextTime;
+    }
     setCurrentTime(nextTime);
+  }
+
+  function seekToPointer(clientX: number) {
+    const timeline = timelineRef.current;
+    const seekDuration = getSeekDuration();
+    if (!timeline || !Number.isFinite(seekDuration) || seekDuration <= 0) return;
+    const rect = timeline.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    if (clientX === 0 && rect.left > 0) return;
+    const progress = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    seekTo(progress * seekDuration);
   }
 
   function addStopover() {
@@ -349,6 +374,7 @@ function VideoStopoverEditor({
 
   const draftRectStyle = draftStopover ? rectStyle(draftStopover.inputArea, layout) : undefined;
   const draftHandStyle = draftStopover ? pointStyle(draftStopover.hand, layout) : undefined;
+  const timelineProgress = duration > 0 ? Math.max(0, Math.min(100, (currentTime / duration) * 100)) : 0;
 
   return (
     <div className="grid gap-5 p-5">
@@ -471,23 +497,44 @@ function VideoStopoverEditor({
           </div>
           <span>{formatTime(duration)}</span>
         </div>
-        <div className="relative h-12">
-          <input
-            className="range-input absolute left-0 top-4 z-10"
-            type="range"
-            min={0}
-            max={Math.max(0.01, duration)}
-            step={0.01}
-            value={currentTime}
-            onChange={(event) => seekTo(Number(event.currentTarget.value))}
-          />
+        <div
+          ref={timelineRef}
+          className="relative h-12 touch-none cursor-pointer"
+          role="slider"
+          tabIndex={0}
+          aria-label="Video timeline"
+          aria-valuemin={0}
+          aria-valuemax={Math.round(duration)}
+          aria-valuenow={Math.round(currentTime)}
+          aria-valuetext={formatTime(currentTime)}
+          onPointerDown={(event) => {
+            seekToPointer(event.clientX);
+          }}
+          onPointerMove={(event) => {
+            if (event.buttons !== 1) return;
+            seekToPointer(event.clientX);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowLeft') {
+              event.preventDefault();
+              seekTo(currentTime - 1);
+            }
+            if (event.key === 'ArrowRight') {
+              event.preventDefault();
+              seekTo(currentTime + 1);
+            }
+          }}
+        >
           <div className="absolute inset-x-0 top-7 h-1 rounded-full bg-zinc-300" />
+          <div className="absolute left-0 top-7 h-1 rounded-full bg-blue-600" style={{ width: `${timelineProgress}%` }} />
+          <span className="absolute top-5 z-10 size-5 -translate-x-1/2 rounded-full border-2 border-white bg-blue-600 shadow" style={{ left: `${timelineProgress}%` }} />
           {sortedStopovers.map((stopover, index) => (
             <button
               key={stopover.id}
               type="button"
               className="group absolute top-0 z-20 -translate-x-1/2"
               style={{ left: `${duration ? (stopover.timeMs / 1000 / duration) * 100 : 0}%` }}
+              onPointerDown={(event) => event.stopPropagation()}
               onClick={() => editStopover(stopover)}
               aria-label={`Edit stopover ${index + 1}`}
             >

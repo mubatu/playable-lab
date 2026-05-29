@@ -33,6 +33,7 @@ class VideoPlayableApp {
   private readonly stopovers: RuntimeStopover[];
   private readonly completedStopovers = new Set<string>();
   private activeStopover: RuntimeStopover | null = null;
+  private stopoverFrame = 0;
   private hasFinished = false;
 
   constructor(root: HTMLElement, options: { onReady: () => void; onFinish: () => void; onInstall: () => void }) {
@@ -68,6 +69,8 @@ class VideoPlayableApp {
     this.root.append(this.shell);
 
     this.video.addEventListener('loadeddata', options.onReady, { once: true });
+    this.video.addEventListener('play', () => this.startStopoverClock());
+    this.video.addEventListener('pause', () => this.stopStopoverClock());
     this.video.addEventListener('timeupdate', () => this.checkStopovers());
     this.video.addEventListener('ended', () => {
       if (this.hasFinished) return;
@@ -122,8 +125,30 @@ class VideoPlayableApp {
 
     this.activeStopover = stopover;
     this.video.pause();
+    this.video.currentTime = stopover.timeMs / 1000;
     this.shell.classList.add('is-waiting');
     this.renderActiveStopover();
+  }
+
+  private startStopoverClock(): void {
+    if (this.stopoverFrame) return;
+
+    const tick = () => {
+      this.stopoverFrame = 0;
+      this.checkStopovers();
+
+      if (!this.video.paused && !this.activeStopover && !this.hasFinished) {
+        this.stopoverFrame = window.requestAnimationFrame(tick);
+      }
+    };
+
+    this.stopoverFrame = window.requestAnimationFrame(tick);
+  }
+
+  private stopStopoverClock(): void {
+    if (!this.stopoverFrame) return;
+    window.cancelAnimationFrame(this.stopoverFrame);
+    this.stopoverFrame = 0;
   }
 
   private handlePointerDown(event: PointerEvent): void {
