@@ -400,7 +400,7 @@ function VideoStopoverEditor({
                 style={draftHandStyle}
                 onPointerDown={(event) => startDrag('hand-move', event)}
               >
-                <img className="size-20 object-contain drop-shadow-xl" src="/template-assets/video/src/assets/hand.png" alt="" />
+                <img className="size-20 object-contain drop-shadow-xl" src="/video-template-assets/src/assets/hand.png" alt="" />
               </button>
             ) : null}
           </div>

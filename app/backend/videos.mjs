@@ -138,7 +138,7 @@ export async function createVideoPlayable(context, payload) {
   if (!slug) throw new Error('Playable name must include letters or numbers.');
 
   const draft = await readDraft(context, payload.draftId);
-  const templateDir = safeJoin(context.templatesDir, 'video');
+  const templateDir = context.videoTemplateDir;
   const playableDir = safeJoin(context.playablesDir, slug);
 
   await mkdir(context.playablesDir, { recursive: true });

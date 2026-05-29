@@ -118,6 +118,32 @@ export async function serveTemplateAsset(context, req, res) {
   }
 }
 
+export async function serveVideoTemplateAsset(context, req, res) {
+  const requestUrl = new URL(req.url, 'http://127.0.0.1');
+  const match = requestUrl.pathname.match(/^\/video-template-assets\/(.+)$/);
+  if (!match) {
+    sendText(res, 404, 'Not found');
+    return;
+  }
+
+  const relativeFilePath = match[1].split('/').map(decodeURIComponent).join('/');
+  const filePath = safeJoin(context.videoTemplateDir, relativeFilePath);
+
+  try {
+    const fileStats = await stat(filePath);
+    if (!fileStats.isFile()) {
+      sendText(res, 404, 'Not found');
+      return;
+    }
+
+    const ext = extname(filePath);
+    res.writeHead(200, { 'content-type': contentTypes[ext] || 'application/octet-stream' });
+    res.end(await readFile(filePath));
+  } catch {
+    sendText(res, 404, 'Not found');
+  }
+}
+
 export async function servePlayableAsset(context, req, res) {
   const requestUrl = new URL(req.url, 'http://127.0.0.1');
   const match = requestUrl.pathname.match(/^\/playable-assets\/([^/]+)\/(.+)$/);
