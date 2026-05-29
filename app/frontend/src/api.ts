@@ -4,7 +4,10 @@ import type {
   BuildResponse,
   Playable,
   PlayableTemplate,
-  UploadedFilePayload
+  UploadedFilePayload,
+  VideoDraft,
+  VideoPlayable,
+  VideoStopover
 } from './types';
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -23,6 +26,56 @@ export async function fetchTemplates(): Promise<PlayableTemplate[]> {
 export async function fetchPlayables(): Promise<Playable[]> {
   const body = await readJson<{ playables: Playable[] }>(await fetch('/api/playables'));
   return body.playables || [];
+}
+
+export async function uploadVideoDraft(file: File): Promise<VideoDraft> {
+  const body = await readJson<{ draft: VideoDraft }>(
+    await fetch('/api/video-uploads', {
+      method: 'POST',
+      headers: {
+        'content-type': file.type || 'application/octet-stream',
+        'x-file-name': encodeURIComponent(file.name)
+      },
+      body: file
+    })
+  );
+  return body.draft;
+}
+
+export async function createVideoPlayable(payload: {
+  name: string;
+  draftId: string;
+  stopovers: VideoStopover[];
+}): Promise<Playable> {
+  const body = await readJson<{ playable: Playable }>(
+    await fetch('/api/video-playables', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+  );
+  return body.playable;
+}
+
+export async function fetchVideoPlayable(slug: string): Promise<VideoPlayable> {
+  const body = await readJson<{ playable: VideoPlayable }>(await fetch(`/api/video-playables/${slug}`));
+  return body.playable;
+}
+
+export async function updateVideoPlayable(
+  slug: string,
+  payload: {
+    stopovers: VideoStopover[];
+  }
+): Promise<Playable> {
+  const body = await readJson<{ playable: Playable }>(
+    await fetch(`/api/video-playables/${slug}`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+  );
+  return body.playable;
 }
 
 export async function createPlayable(

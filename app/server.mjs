@@ -10,7 +10,8 @@ import {
   servePlayableAsset,
   serveStatic,
   serveTemplateAsset,
-  serveTemplateDemo
+  serveTemplateDemo,
+  serveVideoDraft
 } from './backend/static.mjs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -26,6 +27,7 @@ const context = {
   rootDir,
   distDir: join(__dirname, 'dist'),
   templatesDir: join(rootDir, 'templates'),
+  videoDraftsDir: join(rootDir, '.video-drafts'),
   playablesDir: join(rootDir, 'my-playables'),
   allowedAdNetworks,
   allowedLanguages,
@@ -55,6 +57,10 @@ async function requestHandler(req, res) {
     }
     if (req.url.startsWith('/playable-assets/')) {
       await servePlayableAsset(context, req, res);
+      return;
+    }
+    if (req.url.startsWith('/video-drafts/')) {
+      await serveVideoDraft(context, req, res);
       return;
     }
     if (viteServer) {

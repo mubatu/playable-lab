@@ -3,6 +3,7 @@ import { extname, join } from 'node:path';
 import { contentTypes, sendText } from './http.mjs';
 import { getPlayableDir } from './playables.mjs';
 import { safeJoin } from './paths.mjs';
+import { getVideoDraftFile } from './videos.mjs';
 
 export async function serveStatic(context, req, res) {
   const requestUrl = new URL(req.url, 'http://127.0.0.1');
@@ -139,6 +140,25 @@ export async function servePlayableAsset(context, req, res) {
     const ext = extname(filePath);
     res.writeHead(200, { 'content-type': contentTypes[ext] || 'application/octet-stream' });
     res.end(await readFile(filePath));
+  } catch {
+    sendText(res, 404, 'Not found');
+  }
+}
+
+export async function serveVideoDraft(context, req, res) {
+  const requestUrl = new URL(req.url, 'http://127.0.0.1');
+  const match = requestUrl.pathname.match(/^\/video-drafts\/([^/]+)\/(.+)$/);
+  if (!match) {
+    sendText(res, 404, 'Not found');
+    return;
+  }
+
+  try {
+    const draftId = decodeURIComponent(match[1]);
+    const fileName = decodeURIComponent(match[2]);
+    const file = await getVideoDraftFile(context, draftId, fileName);
+    res.writeHead(200, { 'content-type': file.type || 'application/octet-stream' });
+    res.end(await readFile(file.path));
   } catch {
     sendText(res, 404, 'Not found');
   }
