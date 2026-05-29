@@ -120,6 +120,7 @@ export interface VideoStopover {
   hand: {
     centerX: number;
     centerY: number;
+    width: number;
   };
 }
 

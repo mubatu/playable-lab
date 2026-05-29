@@ -6,6 +6,7 @@ import { getPlayable, getPlayableDir } from './playables.mjs';
 import { pathExists, safeJoin, slugify } from './paths.mjs';
 
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
+const DEFAULT_HAND_WIDTH = 0.2;
 const VIDEO_EXTENSIONS = new Set(['.m4v', '.mov', '.mp4', '.webm']);
 const DEFAULT_BUILD_CONFIG = {
   outDir: 'builds',
@@ -55,7 +56,8 @@ function normalizeRect(rect) {
 function normalizePoint(point) {
   return {
     centerX: Math.max(0, Math.min(1, normalizeNumber(point?.centerX, 0.5))),
-    centerY: Math.max(0, Math.min(1, normalizeNumber(point?.centerY, 0.5)))
+    centerY: Math.max(0, Math.min(1, normalizeNumber(point?.centerY, 0.5))),
+    width: Math.max(0.08, Math.min(0.5, normalizeNumber(point?.width, DEFAULT_HAND_WIDTH)))
   };
 }
 

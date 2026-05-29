@@ -14,6 +14,7 @@ type NormalizedRect = {
 type NormalizedPoint = {
   centerX: number;
   centerY: number;
+  width?: number;
 };
 
 type RuntimeStopover = {
@@ -22,6 +23,8 @@ type RuntimeStopover = {
   inputArea: NormalizedRect;
   hand: NormalizedPoint;
 };
+
+const DEFAULT_HAND_WIDTH = 0.2;
 
 class VideoPlayableApp {
   private readonly root: HTMLElement;
@@ -182,6 +185,9 @@ class VideoPlayableApp {
     this.hotspot.style.height = `${area.height * layout.height}px`;
     this.hand.style.left = `${layout.x + hand.centerX * layout.width}px`;
     this.hand.style.top = `${layout.y + hand.centerY * layout.height}px`;
+    const handSize = (hand.width || DEFAULT_HAND_WIDTH) * layout.width;
+    this.hand.style.width = `${handSize}px`;
+    this.hand.style.height = `${handSize}px`;
   }
 
   private getVideoLayout(): { x: number; y: number; width: number; height: number } {

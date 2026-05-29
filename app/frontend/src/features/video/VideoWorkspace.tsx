@@ -32,6 +32,8 @@ const DEFAULT_INPUT_AREA = {
   width: 0.3,
   height: 0.16
 };
+const HAND_SIZE_PX = 80;
+const DEFAULT_HAND_WIDTH = 0.2;
 
 export function VideoWorkspace({
   mode,
@@ -309,7 +311,8 @@ function VideoStopoverEditor({
       inputArea: rect,
       hand: {
         centerX: rect.x + rect.width / 2,
-        centerY: rect.y + rect.height / 2
+        centerY: rect.y + rect.height / 2,
+        width: getHandWidth(layout)
       }
     });
     setPhase('input');
@@ -328,7 +331,8 @@ function VideoStopoverEditor({
       ...draftStopover,
       hand: {
         centerX: draftStopover.inputArea.x + draftStopover.inputArea.width / 2,
-        centerY: draftStopover.inputArea.y + draftStopover.inputArea.height / 2
+        centerY: draftStopover.inputArea.y + draftStopover.inputArea.height / 2,
+        width: draftStopover.hand.width || getHandWidth(layout)
       }
     });
     setPhase('hand');
@@ -422,11 +426,11 @@ function VideoStopoverEditor({
               <button
                 type="button"
                 aria-label="Move hand"
-                className="absolute z-20 grid size-20 cursor-move place-items-center border-0 bg-transparent p-0"
+                className="absolute z-20 grid cursor-move place-items-center border-0 bg-transparent p-0"
                 style={draftHandStyle}
                 onPointerDown={(event) => startDrag('hand-move', event)}
               >
-                <img className="size-20 object-contain drop-shadow-xl" src="/video-template-assets/src/assets/hand.png" alt="" />
+                <img className="size-full object-contain drop-shadow-xl" src="/video-template-assets/src/assets/hand.png" alt="" />
               </button>
             ) : null}
           </div>
@@ -628,11 +632,21 @@ function rectStyle(rect: VideoStopover['inputArea'], layout: VideoLayout): CSSPr
 }
 
 function pointStyle(point: VideoStopover['hand'], layout: VideoLayout): CSSProperties {
+  const width = (point.width || DEFAULT_HAND_WIDTH) * layout.width;
   return {
     left: layout.x + point.centerX * layout.width,
     top: layout.y + point.centerY * layout.height,
+    width,
+    height: width,
     transform: 'translate(-50%, -50%)'
   };
+}
+
+function getHandWidth(layout: VideoLayout) {
+  if (!Number.isFinite(layout.width) || layout.width <= 1) {
+    return DEFAULT_HAND_WIDTH;
+  }
+  return Math.max(0.08, Math.min(0.5, HAND_SIZE_PX / layout.width));
 }
 
 function clampRect(rect: VideoStopover['inputArea']): VideoStopover['inputArea'] {
@@ -649,7 +663,8 @@ function clampRect(rect: VideoStopover['inputArea']): VideoStopover['inputArea']
 function clampPoint(point: VideoStopover['hand']): VideoStopover['hand'] {
   return {
     centerX: Math.max(0, Math.min(1, point.centerX)),
-    centerY: Math.max(0, Math.min(1, point.centerY))
+    centerY: Math.max(0, Math.min(1, point.centerY)),
+    width: Math.max(0.08, Math.min(0.5, point.width || DEFAULT_HAND_WIDTH))
   };
 }
 
@@ -659,7 +674,8 @@ function transformStopover(stopover: DraftStopover, kind: DragKind, dx: number, 
       ...stopover,
       hand: clampPoint({
         centerX: stopover.hand.centerX + dx,
-        centerY: stopover.hand.centerY + dy
+        centerY: stopover.hand.centerY + dy,
+        width: stopover.hand.width
       })
     };
   }

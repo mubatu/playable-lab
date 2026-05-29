@@ -51,8 +51,6 @@ body {
   position: absolute;
   z-index: 3;
   display: none;
-  width: 84px;
-  height: 84px;
   object-fit: contain;
   pointer-events: none;
   filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.34));
