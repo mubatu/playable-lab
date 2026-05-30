@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Custom Playable Prompt Ideas</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: Inter, Segoe UI, system-ui, -apple-system, sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 32px 20px;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+    main {
+      max-width: 880px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      line-height: 1.2;
+    }
+    p {
+      margin: 0 0 20px;
+      color: #cbd5e1;
+    }
+    ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 12px;
+    }
+    li {
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 14px;
+      background: #111827;
+    }
+    code {
+      color: #93c5fd;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Custom Playable Prompt Ideas</h1>
+    <p>Use these starter prompts with your preferred generation workflow, then adapt the downloaded scaffold.</p>
+    <p><strong>Important for every prompt:</strong> tell the AI agent to read <code>reusables/</code> first, reuse modules from there, and inspect implementations under <code>games/</code> to follow existing usage patterns.</p>
+    <p><strong>Quick start for the custom-game frontend tab:</strong> unzip the downloaded archive, open a terminal, run <code>cd custom-game</code>, then run <code>npx vite</code> to launch the sample rotating-cube scene.</p>
+    <ul>
+      <li><code>Read reusables/ first, reuse its modules, and review how games/ uses them. Then create a swipe-based endless runner where the player dodges obstacles and collects boosters. Keep one-touch controls and a replay CTA.</code></li>
+      <li><code>Read reusables/ first, reuse its modules, and review how games/ uses them. Then build a match-3 mini puzzle with a 30-second timer, combo scoring, and a final win panel with install button.</code></li>
+      <li><code>Read reusables/ first, reuse its modules, and review how games/ uses them. Then design a merge game prototype using drag-and-drop pieces, progressive tiers, and particle feedback on successful merges.</code></li>
+      <li><code>Read reusables/ first, reuse its modules, and review how games/ uses them. Then generate a tower-defense style lane game with tap-to-deploy units, simple enemy waves, and a progress bar HUD.</code></li>
+      <li><code>Read reusables/ first, reuse its modules, and review how games/ uses them. Then create a physics slingshot challenge where users pull, aim, and release projectiles to hit targets in three short rounds.</code></li>
+    </ul>
+  </main>
+</body>
+</html>

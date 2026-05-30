@@ -19,6 +19,7 @@ import {
   updateVideoPlayable,
   uploadVideoDraft
 } from './videos.mjs';
+import { createCustomStarterArchive, streamCustomStarterArchive } from './customStarter.mjs';
 
 export async function handleApi(context, req, res) {
   const requestUrl = new URL(req.url, 'http://127.0.0.1');
@@ -43,6 +44,18 @@ export async function handleApi(context, req, res) {
     const payload = await readRequestJson(req);
     const playable = await createVideoPlayable(context, payload);
     sendJson(res, 201, { playable });
+    return;
+  }
+
+  if (req.method === 'POST' && requestUrl.pathname === '/api/custom/starter') {
+    const download = await createCustomStarterArchive(context);
+    sendJson(res, 201, { download });
+    return;
+  }
+
+  const customStarterDownloadMatch = requestUrl.pathname.match(/^\/api\/custom\/starter\/download\/([^/]+)$/);
+  if (req.method === 'GET' && customStarterDownloadMatch) {
+    await streamCustomStarterArchive(res, decodeURIComponent(customStarterDownloadMatch[1]));
     return;
   }
 

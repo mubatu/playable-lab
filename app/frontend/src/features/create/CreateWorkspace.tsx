@@ -26,6 +26,8 @@ export function CreateWorkspace({
   onUploadVideo,
   onCreateVideo,
   onSaveVideo,
+  customStarterLoading,
+  onStartCustom,
   onUpdateConfig,
   onSubmit,
   onReset,
@@ -45,6 +47,8 @@ export function CreateWorkspace({
   onUploadVideo: (file: File) => Promise<VideoDraft | null>;
   onCreateVideo: (name: string, draft: VideoDraft, stopovers: VideoStopover[]) => Promise<void>;
   onSaveVideo: (stopovers: VideoStopover[]) => Promise<void>;
+  customStarterLoading: boolean;
+  onStartCustom: () => void;
   onUpdateConfig: (path: string, value: unknown) => void;
   onSubmit: (playableName?: string) => void;
   onReset: () => void;
@@ -147,10 +151,12 @@ export function CreateWorkspace({
         <SourceChoiceCard
           icon={<Code2 className="size-9" />}
           title="Custom"
-          description="Begin with a blank bespoke playable flow once custom project scaffolding lands."
+          description="Download a custom starter bundle and open prompt ideas to bootstrap a bespoke playable."
           advantages={['Maximum creative control', 'Flexible interaction design', 'Tailored gameplay structure']}
           tone="orange"
-          disabled
+          disabled={customStarterLoading}
+          badgeLabel={customStarterLoading ? 'Preparing starter...' : null}
+          onClick={onStartCustom}
         />
       </section>
     );
@@ -373,6 +379,7 @@ function SourceChoiceCard({
   advantages,
   tone,
   disabled,
+  badgeLabel,
   onClick
 }: {
   icon: ReactNode;
@@ -381,6 +388,7 @@ function SourceChoiceCard({
   advantages: string[];
   tone: 'blue' | 'purple' | 'orange';
   disabled?: boolean;
+  badgeLabel?: string | null;
   onClick?: () => void;
 }) {
   const toneClasses = {
@@ -420,7 +428,7 @@ function SourceChoiceCard({
           </span>
         ))}
       </span>
-      {disabled ? <span className="mt-6 inline-flex rounded-md bg-white/70 px-3 py-1.5 text-xs font-semibold">Coming soon</span> : null}
+      {badgeLabel ? <span className="mt-6 inline-flex rounded-md bg-white/70 px-3 py-1.5 text-xs font-semibold">{badgeLabel}</span> : null}
     </button>
   );
 }

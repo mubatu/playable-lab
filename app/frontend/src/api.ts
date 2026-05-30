@@ -169,3 +169,12 @@ export async function runPlayableBuild(
   if (!body.build) throw new Error('Build response was empty.');
   return body.build;
 }
+
+export async function createCustomStarter(): Promise<string> {
+  const body = await readJson<{ download: { url: string } }>(
+    await fetch('/api/custom/starter', {
+      method: 'POST'
+    })
+  );
+  return body.download.url;
+}

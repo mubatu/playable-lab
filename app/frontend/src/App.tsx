@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { FolderOpen, Loader2, Plus, RefreshCw } from 'lucide-react';
 import playableLabLogo from './assets/playable-lab.png';
 import {
+  createCustomStarter,
   createVideoPlayable,
   createPlayable,
   deleteBuildArtifact,
@@ -58,7 +59,16 @@ export default function App() {
   const [buildOptions, setBuildOptions] = useState<BuildOptions | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
   const [noticeVersion, setNoticeVersion] = useState(0);
-  const [loading, setLoading] = useState({ app: true, playables: false, builds: false, create: false, preview: false, build: false, templateDemo: '' });
+  const [loading, setLoading] = useState({
+    app: true,
+    playables: false,
+    builds: false,
+    create: false,
+    preview: false,
+    build: false,
+    customStarter: false,
+    templateDemo: ''
+  });
   const formRef = useRef<HTMLFormElement>(null);
 
   const isEditingPlayable = Boolean(editingPlayableSlug);
@@ -406,6 +416,30 @@ export default function App() {
     }
   }
 
+  async function handleStartCustom() {
+    const promptsWindow = window.open('/example-prompts.html', '_blank', 'noopener,noreferrer');
+    setLoading((current) => ({ ...current, customStarter: true }));
+    showNotice('info', 'Preparing custom starter package...');
+
+    try {
+      const url = await createCustomStarter();
+      const downloadUrl = new URL(url, window.location.origin).href;
+      const anchor = document.createElement('a');
+      anchor.href = downloadUrl;
+      anchor.download = '';
+      anchor.rel = 'noopener';
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      showNotice('success', 'Custom starter download started.');
+    } catch (error) {
+      if (promptsWindow) promptsWindow.close();
+      showNotice('error', error instanceof Error ? error.message : 'Could not prepare custom starter.');
+    } finally {
+      setLoading((current) => ({ ...current, customStarter: false }));
+    }
+  }
+
   async function handleOpenBuildDialog() {
     if (!selectedPlayable) return;
     setLoading((current) => ({ ...current, build: true }));
@@ -537,6 +571,8 @@ export default function App() {
                 onUploadVideo={(file) => handleUploadVideo(file)}
                 onCreateVideo={(name, draft, stopovers) => handleCreateVideo(name, draft, stopovers)}
                 onSaveVideo={(stopovers) => handleSaveVideo(stopovers)}
+                customStarterLoading={loading.customStarter}
+                onStartCustom={() => void handleStartCustom()}
                 onUpdateConfig={updateConfigValue}
                 onSubmit={(playableName) => void (isEditingPlayable ? handleSaveChanges() : handleCreate(playableName || ''))}
                 onReset={handleResetCreateForm}
