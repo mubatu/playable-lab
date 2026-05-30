@@ -8,6 +8,10 @@ export const contentTypes = {
   '.jpeg': 'image/jpeg',
   '.svg': 'image/svg+xml',
   '.mp3': 'audio/mpeg',
+  '.m4v': 'video/x-m4v',
+  '.mov': 'video/quicktime',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
   '.zip': 'application/zip'
 };
 
@@ -42,6 +46,28 @@ export function readRequestJson(req) {
       } catch {
         reject(new Error('Invalid JSON request body.'));
       }
+    });
+    req.on('error', reject);
+  });
+}
+
+export function readRequestBuffer(req, maxBytes) {
+  return new Promise((resolveRequest, reject) => {
+    const chunks = [];
+    let size = 0;
+
+    req.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > maxBytes) {
+        reject(new Error('Uploaded file is too large.'));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+
+    req.on('end', () => {
+      resolveRequest(Buffer.concat(chunks, size));
     });
     req.on('error', reject);
   });

@@ -4,10 +4,11 @@ import { ArrowLeft, Code2, ImageIcon, LayoutTemplate, Loader2, Play, Plus, Rotat
 import blastIcon from '../../assets/blast-icon.png';
 import catcherIcon from '../../assets/catcher-icon.png';
 import type { AssetOptionsById, CreateFormTab } from '../../appTypes';
-import type { PlayableTemplate } from '../../types';
+import type { PlayableTemplate, VideoDraft, VideoPlayable, VideoStopover } from '../../types';
 import { Button } from '../../components/ui';
 import { AssetSection } from '../assets/AssetSection';
 import { ParameterSection } from '../config/ConfigControls';
+import { VideoWorkspace } from '../video/VideoWorkspace';
 import { cx, groupConfigFields } from '../../lib/appUtils';
 
 export function CreateWorkspace({
@@ -19,8 +20,12 @@ export function CreateWorkspace({
   configValues,
   loading,
   demoLoadingTemplateId,
+  editingVideoPlayable,
   onSelectTemplate,
   onPreviewTemplate,
+  onUploadVideo,
+  onCreateVideo,
+  onSaveVideo,
   onUpdateConfig,
   onSubmit,
   onReset,
@@ -34,15 +39,20 @@ export function CreateWorkspace({
   configValues: Record<string, unknown>;
   loading: boolean;
   demoLoadingTemplateId: string;
+  editingVideoPlayable?: VideoPlayable | null;
   onSelectTemplate: (id: string) => void;
   onPreviewTemplate: (id: string) => void;
+  onUploadVideo: (file: File) => Promise<VideoDraft | null>;
+  onCreateVideo: (name: string, draft: VideoDraft, stopovers: VideoStopover[]) => Promise<void>;
+  onSaveVideo: (stopovers: VideoStopover[]) => Promise<void>;
   onUpdateConfig: (path: string, value: unknown) => void;
   onSubmit: (playableName?: string) => void;
   onReset: () => void;
   onCancel?: () => void;
 }) {
   const isEditing = mode === 'edit';
-  const [step, setStep] = useState<'source' | 'templates' | 'form'>(isEditing ? 'form' : 'source');
+  const isEditingVideo = Boolean(editingVideoPlayable);
+  const [step, setStep] = useState<'source' | 'templates' | 'form' | 'video'>(isEditing ? 'form' : 'source');
   const [activeFormTab, setActiveFormTab] = useState<CreateFormTab>('assets');
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
   const [newPlayableName, setNewPlayableName] = useState('');
@@ -53,8 +63,8 @@ export function CreateWorkspace({
   const parameterCount = groups.reduce((count, group) => count + group.fields.length + group.advancedFields.length, 0);
 
   useEffect(() => {
-    setStep(isEditing ? 'form' : 'source');
-  }, [isEditing]);
+    setStep(isEditing ? (isEditingVideo ? 'video' : 'form') : 'source');
+  }, [isEditing, isEditingVideo]);
 
   useEffect(() => {
     setActiveFormTab(assets.length > 0 ? 'assets' : 'parameters');
@@ -129,10 +139,10 @@ export function CreateWorkspace({
         <SourceChoiceCard
           icon={<Video className="size-9" />}
           title="Video"
-          description="Create from video-first assets when the video creation pipeline is ready."
+          description="Turn gameplay footage into a tap-to-continue playable ad with guided stopovers."
           advantages={['Built for motion-led ads', 'Keeps source footage central', 'Good for fast creative variants']}
           tone="purple"
-          disabled
+          onClick={() => setStep('video')}
         />
         <SourceChoiceCard
           icon={<Code2 className="size-9" />}
@@ -143,6 +153,20 @@ export function CreateWorkspace({
           disabled
         />
       </section>
+    );
+  }
+
+  if (isEditingVideo || (!isEditing && step === 'video')) {
+    return (
+      <VideoWorkspace
+        mode={isEditingVideo ? 'edit' : 'create'}
+        initialPlayable={editingVideoPlayable || null}
+        loading={loading}
+        onUpload={onUploadVideo}
+        onCreate={onCreateVideo}
+        onSave={onSaveVideo}
+        onCancel={() => (isEditingVideo ? onCancel?.() : setStep('source'))}
+      />
     );
   }
 
@@ -361,7 +385,7 @@ function SourceChoiceCard({
 }) {
   const toneClasses = {
     blue: 'border-blue-200 bg-blue-50 text-blue-950 hover:border-blue-300 hover:bg-blue-100',
-    purple: 'border-purple-200 bg-purple-50 text-purple-950',
+    purple: 'border-purple-200 bg-purple-50 text-purple-950 hover:border-purple-300 hover:bg-purple-100',
     orange: 'border-amber-200 bg-amber-50 text-amber-950'
   };
   const iconClasses = {

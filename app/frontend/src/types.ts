@@ -58,6 +58,7 @@ export interface Playable {
   slug: string;
   templateId: string;
   templateName?: string;
+  sourceType?: 'template' | 'video';
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -95,4 +96,42 @@ export interface UploadedFilePayload {
   name: string;
   type: string;
   dataUrl: string | ArrayBuffer | null;
+}
+
+export interface VideoDraft {
+  id: string;
+  originalName: string;
+  fileName: string;
+  type: string;
+  size: number;
+  url: string;
+  createdAt?: string;
+}
+
+export interface VideoStopover {
+  id: string;
+  timeMs: number;
+  inputArea: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  hand: {
+    centerX: number;
+    centerY: number;
+    width: number;
+  };
+}
+
+export interface VideoPlayable extends Playable {
+  sourceType: 'video';
+  video: {
+    originalName: string;
+    fileName: string;
+    type: string;
+    size: number;
+    url: string;
+  };
+  stopovers: VideoStopover[];
 }

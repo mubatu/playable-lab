@@ -13,6 +13,12 @@ import {
   updatePlayable
 } from './playables.mjs';
 import { listTemplates, previewTemplateDemo } from './templates.mjs';
+import {
+  createVideoPlayable,
+  getVideoPlayable,
+  updateVideoPlayable,
+  uploadVideoDraft
+} from './videos.mjs';
 
 export async function handleApi(context, req, res) {
   const requestUrl = new URL(req.url, 'http://127.0.0.1');
@@ -24,6 +30,33 @@ export async function handleApi(context, req, res) {
 
   if (req.method === 'GET' && requestUrl.pathname === '/api/playables') {
     sendJson(res, 200, { playables: await listPlayables(context) });
+    return;
+  }
+
+  if (req.method === 'POST' && requestUrl.pathname === '/api/video-uploads') {
+    const draft = await uploadVideoDraft(context, req);
+    sendJson(res, 201, { draft });
+    return;
+  }
+
+  if (req.method === 'POST' && requestUrl.pathname === '/api/video-playables') {
+    const payload = await readRequestJson(req);
+    const playable = await createVideoPlayable(context, payload);
+    sendJson(res, 201, { playable });
+    return;
+  }
+
+  const videoPlayableMatch = requestUrl.pathname.match(/^\/api\/video-playables\/([^/]+)$/);
+  if (req.method === 'GET' && videoPlayableMatch) {
+    const playable = await getVideoPlayable(context, videoPlayableMatch[1]);
+    sendJson(res, 200, { playable });
+    return;
+  }
+
+  if (req.method === 'PUT' && videoPlayableMatch) {
+    const payload = await readRequestJson(req);
+    const playable = await updateVideoPlayable(context, videoPlayableMatch[1], payload);
+    sendJson(res, 200, { playable });
     return;
   }
 

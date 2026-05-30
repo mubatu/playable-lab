@@ -54,7 +54,8 @@ export async function listTemplates(context) {
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     try {
-      manifests.push(await getManifest(context, entry.name));
+      const manifest = await getManifest(context, entry.name);
+      if (!manifest.hidden) manifests.push(manifest);
     } catch {
       // Folders without a manifest are not lab-ready templates yet.
     }

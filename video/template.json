@@ -1,0 +1,10 @@
+{
+  "id": "video",
+  "name": "Video",
+  "description": "Convert gameplay footage into a tap-to-continue playable ad.",
+  "entry": "src/index.html",
+  "hidden": true,
+  "configSections": [],
+  "assets": [],
+  "config": []
+}

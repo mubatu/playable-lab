@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { FolderOpen, Loader2, Plus, RefreshCw } from 'lucide-react';
 import playableLabLogo from './assets/playable-lab.png';
 import {
+  createVideoPlayable,
   createPlayable,
   deleteBuildArtifact,
   fetchBuildArtifacts,
@@ -10,8 +11,11 @@ import {
   fetchPlayableTemplate,
   fetchPlayables,
   fetchTemplates,
+  fetchVideoPlayable,
   previewPlayable,
   previewTemplateDemo,
+  updateVideoPlayable,
+  uploadVideoDraft,
   updatePlayable
 } from './api';
 import type {
@@ -20,7 +24,10 @@ import type {
   BuildResponse,
   Playable,
   PlayableTemplate,
-  UploadedFilePayload
+  UploadedFilePayload,
+  VideoDraft,
+  VideoPlayable,
+  VideoStopover
 } from './types';
 import type { Notice, View } from './appTypes';
 import { Button, LoadingPanel, NoticeBanner } from './components/ui';
@@ -44,6 +51,7 @@ export default function App() {
   const [selectedPlayableSlug, setSelectedPlayableSlug] = useState<string>('');
   const [editingPlayableSlug, setEditingPlayableSlug] = useState<string>('');
   const [editingTemplate, setEditingTemplate] = useState<PlayableTemplate | null>(null);
+  const [editingVideoPlayable, setEditingVideoPlayable] = useState<VideoPlayable | null>(null);
   const [configValues, setConfigValues] = useState<Record<string, unknown>>({});
   const [builds, setBuilds] = useState<BuildArtifact[]>([]);
   const [buildsOutputDir, setBuildsOutputDir] = useState('');
@@ -142,6 +150,7 @@ export default function App() {
     const template = templates.find((item) => item.id === templateId) || null;
     setEditingPlayableSlug('');
     setEditingTemplate(null);
+    setEditingVideoPlayable(null);
     setSelectedTemplateId(templateId);
     setConfigValues(resetValuesForTemplate(template));
     formRef.current?.reset();
@@ -151,6 +160,7 @@ export default function App() {
     const template = templates.find((item) => item.id === selectedTemplateId) || templates[0] || null;
     setEditingPlayableSlug('');
     setEditingTemplate(null);
+    setEditingVideoPlayable(null);
     setSelectedTemplateId(template?.id || '');
     setConfigValues(resetValuesForTemplate(template));
     formRef.current?.reset();
@@ -160,6 +170,7 @@ export default function App() {
   function cancelEdit() {
     setEditingPlayableSlug('');
     setEditingTemplate(null);
+    setEditingVideoPlayable(null);
     formRef.current?.reset();
     setView('playables');
   }
@@ -249,9 +260,20 @@ export default function App() {
     showNotice('info', 'Loading playable settings...');
 
     try {
+      if (playable.sourceType === 'video' || playable.templateId === 'video') {
+        const videoPlayable = await fetchVideoPlayable(playable.slug);
+        setEditingPlayableSlug(playable.slug);
+        setEditingTemplate(null);
+        setEditingVideoPlayable(videoPlayable);
+        setView('create');
+        setNotice(null);
+        return;
+      }
+
       const template = await fetchPlayableTemplate(playable.slug);
       setEditingPlayableSlug(playable.slug);
       setEditingTemplate(template);
+      setEditingVideoPlayable(null);
       setSelectedTemplateId(template.id);
       setConfigValues(resetValuesForTemplate(template));
       formRef.current?.reset();
@@ -279,6 +301,64 @@ export default function App() {
       formRef.current?.reset();
       setEditingPlayableSlug('');
       setEditingTemplate(null);
+      await refreshPlayables(playable.slug);
+      setView('playables');
+      showNotice('success', `${playable.name} was updated.`);
+    } catch (error) {
+      showNotice('error', error instanceof Error ? error.message : 'Save failed.');
+    } finally {
+      setLoading((current) => ({ ...current, create: false }));
+    }
+  }
+
+  async function handleUploadVideo(file: File) {
+    setLoading((current) => ({ ...current, create: true }));
+    showNotice('info', 'Uploading video...');
+
+    try {
+      const draft = await uploadVideoDraft(file);
+      setNotice(null);
+      return draft;
+    } catch (error) {
+      showNotice('error', error instanceof Error ? error.message : 'Video upload failed.');
+      return null;
+    } finally {
+      setLoading((current) => ({ ...current, create: false }));
+    }
+  }
+
+  async function handleCreateVideo(name: string, draft: VideoDraft, stopovers: VideoStopover[]) {
+    setLoading((current) => ({ ...current, create: true }));
+    showNotice('info', 'Creating video playable...');
+
+    try {
+      const playable = await createVideoPlayable({
+        name,
+        draftId: draft.id,
+        stopovers
+      });
+
+      await refreshPlayables(playable.slug);
+      setView('playables');
+      showNotice('success', `${playable.name} was created.`);
+    } catch (error) {
+      showNotice('error', error instanceof Error ? error.message : 'Create failed.');
+    } finally {
+      setLoading((current) => ({ ...current, create: false }));
+    }
+  }
+
+  async function handleSaveVideo(stopovers: VideoStopover[]) {
+    if (!editingPlayableSlug) return;
+
+    setLoading((current) => ({ ...current, create: true }));
+    showNotice('info', 'Saving video playable...');
+
+    try {
+      const playable = await updateVideoPlayable(editingPlayableSlug, { stopovers });
+      setEditingPlayableSlug('');
+      setEditingTemplate(null);
+      setEditingVideoPlayable(null);
       await refreshPlayables(playable.slug);
       setView('playables');
       showNotice('success', `${playable.name} was updated.`);
@@ -451,8 +531,12 @@ export default function App() {
                 configValues={configValues}
                 loading={loading.create}
                 demoLoadingTemplateId={loading.templateDemo}
+                editingVideoPlayable={editingVideoPlayable}
                 onSelectTemplate={selectTemplate}
                 onPreviewTemplate={(templateId) => void handlePreviewTemplateDemo(templateId)}
+                onUploadVideo={(file) => handleUploadVideo(file)}
+                onCreateVideo={(name, draft, stopovers) => handleCreateVideo(name, draft, stopovers)}
+                onSaveVideo={(stopovers) => handleSaveVideo(stopovers)}
                 onUpdateConfig={updateConfigValue}
                 onSubmit={(playableName) => void (isEditingPlayable ? handleSaveChanges() : handleCreate(playableName || ''))}
                 onReset={handleResetCreateForm}
