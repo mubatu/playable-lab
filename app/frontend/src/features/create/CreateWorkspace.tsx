@@ -4,7 +4,7 @@ import { ArrowLeft, Code2, ImageIcon, LayoutTemplate, Loader2, Play, Plus, Rotat
 import blastIcon from '../../assets/blast-icon.png';
 import catcherIcon from '../../assets/catcher-icon.png';
 import type { AssetOptionsById, CreateFormTab } from '../../appTypes';
-import type { PlayableTemplate, VideoDraft, VideoPlayable, VideoStopover } from '../../types';
+import type { PlayableTemplate, VideoDraft, VideoEndButtonConfig, VideoPlayable, VideoStopover } from '../../types';
 import { Button } from '../../components/ui';
 import { AssetSection } from '../assets/AssetSection';
 import { ParameterSection } from '../config/ConfigControls';
@@ -43,8 +43,8 @@ export function CreateWorkspace({
   onSelectTemplate: (id: string) => void;
   onPreviewTemplate: (id: string) => void;
   onUploadVideo: (file: File) => Promise<VideoDraft | null>;
-  onCreateVideo: (name: string, draft: VideoDraft, stopovers: VideoStopover[]) => Promise<void>;
-  onSaveVideo: (stopovers: VideoStopover[]) => Promise<void>;
+  onCreateVideo: (name: string, draft: VideoDraft, stopovers: VideoStopover[], endButton: VideoEndButtonConfig) => Promise<void>;
+  onSaveVideo: (stopovers: VideoStopover[], endButton: VideoEndButtonConfig) => Promise<void>;
   onUpdateConfig: (path: string, value: unknown) => void;
   onSubmit: (playableName?: string) => void;
   onReset: () => void;

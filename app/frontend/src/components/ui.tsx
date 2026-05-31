@@ -14,7 +14,7 @@ export function Button({
   size = 'md'
 }: {
   children: ReactNode;
-  variant?: 'primary' | 'secondary' | 'blue' | 'accent' | 'danger';
+  variant?: 'primary' | 'secondary' | 'blue' | 'purple' | 'accent' | 'danger';
   disabled?: boolean;
   onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
   type?: 'button' | 'submit';
@@ -34,6 +34,7 @@ export function Button({
         variant === 'primary' && 'border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800',
         variant === 'secondary' && 'border-zinc-300 bg-white text-zinc-800 hover:border-zinc-400 hover:bg-zinc-50',
         variant === 'blue' && 'border-blue-600 bg-blue-600 text-white hover:border-blue-700 hover:bg-blue-700',
+        variant === 'purple' && 'border-purple-600 bg-purple-600 text-white hover:border-purple-700 hover:bg-purple-700',
         variant === 'accent' && 'border-amber-500 bg-amber-500 text-zinc-950 hover:border-amber-400 hover:bg-amber-400',
         variant === 'danger' && 'border-red-200 bg-white text-red-700 hover:bg-red-50'
       )}

@@ -26,6 +26,7 @@ import type {
   PlayableTemplate,
   UploadedFilePayload,
   VideoDraft,
+  VideoEndButtonConfig,
   VideoPlayable,
   VideoStopover
 } from './types';
@@ -327,7 +328,7 @@ export default function App() {
     }
   }
 
-  async function handleCreateVideo(name: string, draft: VideoDraft, stopovers: VideoStopover[]) {
+  async function handleCreateVideo(name: string, draft: VideoDraft, stopovers: VideoStopover[], endButton: VideoEndButtonConfig) {
     setLoading((current) => ({ ...current, create: true }));
     showNotice('info', 'Creating video playable...');
 
@@ -335,7 +336,8 @@ export default function App() {
       const playable = await createVideoPlayable({
         name,
         draftId: draft.id,
-        stopovers
+        stopovers,
+        endButton
       });
 
       await refreshPlayables(playable.slug);
@@ -348,14 +350,14 @@ export default function App() {
     }
   }
 
-  async function handleSaveVideo(stopovers: VideoStopover[]) {
+  async function handleSaveVideo(stopovers: VideoStopover[], endButton: VideoEndButtonConfig) {
     if (!editingPlayableSlug) return;
 
     setLoading((current) => ({ ...current, create: true }));
     showNotice('info', 'Saving video playable...');
 
     try {
-      const playable = await updateVideoPlayable(editingPlayableSlug, { stopovers });
+      const playable = await updateVideoPlayable(editingPlayableSlug, { stopovers, endButton });
       setEditingPlayableSlug('');
       setEditingTemplate(null);
       setEditingVideoPlayable(null);
@@ -535,8 +537,8 @@ export default function App() {
                 onSelectTemplate={selectTemplate}
                 onPreviewTemplate={(templateId) => void handlePreviewTemplateDemo(templateId)}
                 onUploadVideo={(file) => handleUploadVideo(file)}
-                onCreateVideo={(name, draft, stopovers) => handleCreateVideo(name, draft, stopovers)}
-                onSaveVideo={(stopovers) => handleSaveVideo(stopovers)}
+                onCreateVideo={(name, draft, stopovers, endButton) => handleCreateVideo(name, draft, stopovers, endButton)}
+                onSaveVideo={(stopovers, endButton) => handleSaveVideo(stopovers, endButton)}
                 onUpdateConfig={updateConfigValue}
                 onSubmit={(playableName) => void (isEditingPlayable ? handleSaveChanges() : handleCreate(playableName || ''))}
                 onReset={handleResetCreateForm}

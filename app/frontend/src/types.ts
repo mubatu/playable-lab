@@ -110,6 +110,18 @@ export interface VideoDraft {
 
 export type VideoGuideId = 'guide-1' | 'guide-2' | 'guide-3';
 
+export interface VideoEndButtonConfig {
+  text: string;
+  width: number;
+  height: number;
+  fontSize: number;
+  centerYPercent: number;
+  backgroundColor: string;
+  textColor: string;
+  pulseScale: number;
+  pulseDurationMs: number;
+}
+
 export interface VideoStopover {
   id: string;
   timeMs: number;
@@ -138,4 +150,5 @@ export interface VideoPlayable extends Playable {
     url: string;
   };
   stopovers: VideoStopover[];
+  endButton?: VideoEndButtonConfig;
 }

@@ -9,6 +9,17 @@ const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 const DEFAULT_HAND_WIDTH = 0.2;
 const DEFAULT_GUIDE_ID = 'guide-1';
 const VIDEO_GUIDE_IDS = new Set(['guide-1', 'guide-2', 'guide-3']);
+const DEFAULT_END_BUTTON = {
+  text: 'PLAY NOW!',
+  width: 230,
+  height: 60,
+  fontSize: 32,
+  centerYPercent: 73,
+  backgroundColor: '#28ae03',
+  textColor: '#ffffff',
+  pulseScale: 1.08,
+  pulseDurationMs: 900
+};
 const VIDEO_EXTENSIONS = new Set(['.m4v', '.mov', '.mp4', '.webm']);
 const DEFAULT_BUILD_CONFIG = {
   outDir: 'builds',
@@ -47,6 +58,10 @@ function normalizeNumber(value, fallback) {
   return Number.isFinite(numberValue) ? numberValue : fallback;
 }
 
+function normalizeHexColor(value, fallback) {
+  return typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
+}
+
 function normalizeRotation(value) {
   const rotation = normalizeNumber(value, 0);
   return ((((rotation + 180) % 360) + 360) % 360) - 180;
@@ -69,6 +84,25 @@ function normalizePoint(point) {
     guideId,
     rotationDeg: normalizeRotation(point?.rotationDeg)
   };
+}
+
+function normalizeEndButton(endButton) {
+  const text = String(endButton?.text || DEFAULT_END_BUTTON.text);
+  return {
+    text,
+    width: getEndButtonWidth(text, DEFAULT_END_BUTTON.fontSize),
+    height: DEFAULT_END_BUTTON.height,
+    fontSize: DEFAULT_END_BUTTON.fontSize,
+    centerYPercent: DEFAULT_END_BUTTON.centerYPercent,
+    backgroundColor: normalizeHexColor(endButton?.backgroundColor, DEFAULT_END_BUTTON.backgroundColor),
+    textColor: normalizeHexColor(endButton?.textColor, DEFAULT_END_BUTTON.textColor),
+    pulseScale: DEFAULT_END_BUTTON.pulseScale,
+    pulseDurationMs: DEFAULT_END_BUTTON.pulseDurationMs
+  };
+}
+
+function getEndButtonWidth(text, fontSize) {
+  return Math.max(120, Math.min(420, Math.ceil(text.length * fontSize * 0.68 + 48)));
 }
 
 function normalizeStopovers(stopovers) {
@@ -111,6 +145,26 @@ export const VIDEO_STOPOVERS = ${JSON.stringify(stopovers, null, 2)} as const;
 
 export type VideoStopover = (typeof VIDEO_STOPOVERS)[number];
 `;
+}
+
+function createVideoConfigSource(endButton) {
+  return `export const GAME_CONFIG = ${JSON.stringify({ ui: { endButton } }, null, 2)} as const;
+
+export type GameConfig = typeof GAME_CONFIG;
+`;
+}
+
+async function readEndButtonConfig(playableDir, fallback) {
+  try {
+    const configSource = await readFile(join(playableDir, 'src', 'config.ts'), 'utf8');
+    const start = configSource.indexOf('{');
+    const end = configSource.lastIndexOf('} as const');
+    if (start === -1 || end === -1) return normalizeEndButton(fallback);
+    const config = Function(`"use strict"; return (${configSource.slice(start, end + 1)});`)();
+    return normalizeEndButton(config?.ui?.endButton || fallback);
+  } catch {
+    return normalizeEndButton(fallback);
+  }
 }
 
 async function syncVideoRuntimeFromTemplate(context, playableDir) {
@@ -184,7 +238,9 @@ export async function createVideoPlayable(context, payload) {
     await cp(draft.path, join(assetDir, draft.fileName));
 
     const stopovers = normalizeStopovers(payload.stopovers);
+    const endButton = normalizeEndButton(payload.endButton);
     await writeFile(join(playableDir, 'src', 'videoData.ts'), createVideoDataSource(draft.fileName, stopovers));
+    await writeFile(join(playableDir, 'src', 'config.ts'), createVideoConfigSource(endButton));
     await writeFile(join(playableDir, 'build.json'), `${JSON.stringify({ ...DEFAULT_BUILD_CONFIG, name }, null, 2)}\n`);
 
     const metadata = {
@@ -200,6 +256,7 @@ export async function createVideoPlayable(context, payload) {
         size: draft.size
       },
       stopovers,
+      endButton,
       createdAt: new Date().toISOString()
     };
 
@@ -217,13 +274,16 @@ export async function getVideoPlayable(context, slug) {
   const fileName = playable.video?.fileName;
   if (!fileName) throw new Error('Video source is missing.');
 
+  const endButton = await readEndButtonConfig(playable.path, playable.endButton);
+
   return {
     ...playable,
     video: {
       ...playable.video,
       url: buildVideoPlayableUrl(slug, fileName)
     },
-    stopovers: normalizeStopovers(playable.stopovers)
+    stopovers: normalizeStopovers(playable.stopovers),
+    endButton
   };
 }
 
@@ -231,6 +291,7 @@ export async function updateVideoPlayable(context, slug, payload) {
   const playable = await getVideoPlayable(context, slug);
   const playableDir = getPlayableDir(context, slug);
   const stopovers = normalizeStopovers(payload.stopovers);
+  const endButton = normalizeEndButton(payload.endButton || playable.endButton);
   const metadata = {
     ...playable,
     video: {
@@ -240,11 +301,13 @@ export async function updateVideoPlayable(context, slug, payload) {
       size: playable.video.size
     },
     stopovers,
+    endButton,
     updatedAt: new Date().toISOString()
   };
 
   await syncVideoRuntimeFromTemplate(context, playableDir);
   await writeFile(join(playableDir, 'src', 'videoData.ts'), createVideoDataSource(playable.video.fileName, stopovers));
+  await writeFile(join(playableDir, 'src', 'config.ts'), createVideoConfigSource(endButton));
   await writeFile(join(playableDir, 'playable.json'), `${JSON.stringify(metadata, null, 2)}\n`);
 
   return metadata;
