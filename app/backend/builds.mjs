@@ -4,6 +4,14 @@ import { extname, join, normalize, relative } from 'node:path';
 import { getPlayable } from './playables.mjs';
 import { pathExists, safeJoin } from './paths.mjs';
 
+function toPosixPath(filePath) {
+  return String(filePath).split('\\').join('/');
+}
+
+function encodeUrlPath(filePath) {
+  return toPosixPath(filePath).split('/').map(encodeURIComponent).join('/');
+}
+
 export async function getBuildConfig(context, slug) {
   const playable = await getPlayable(context, slug);
   const buildConfig = JSON.parse(await readFile(join(playable.path, 'build.json'), 'utf8'));
@@ -44,7 +52,7 @@ export async function listPlayableBuilds(context, slug) {
       if (!entry.isFile()) continue;
 
       const fileStats = await stat(fullPath);
-      const path = relative(playable.path, fullPath);
+      const path = toPosixPath(relative(playable.path, fullPath));
       const extension = extname(entry.name).toLowerCase();
 
       builds.push({
@@ -54,7 +62,7 @@ export async function listPlayableBuilds(context, slug) {
         size: fileStats.size,
         updatedAt: fileStats.mtime.toISOString(),
         canOpen: extension === '.html',
-        url: extension === '.html' ? `/generated/${encodeURIComponent(slug)}/${path.split('/').map(encodeURIComponent).join('/')}` : null
+        url: extension === '.html' ? `/generated/${encodeURIComponent(slug)}/${encodeUrlPath(path)}` : null
       });
     }
   }
@@ -103,6 +111,7 @@ function runBuildCommand(playableDir, network, configPath) {
   return new Promise((resolveBuild, reject) => {
     const child = spawn('npm', ['run', 'build', '--', network, '--build-config', configPath], {
       cwd: playableDir,
+      shell: process.platform === 'win32',
       stdio: ['ignore', 'pipe', 'pipe']
     });
     let output = '';
@@ -157,13 +166,13 @@ export async function previewPlayable(context, slug) {
     ? (await findNewestHtml(outputDir, startedAt - 1000)) || (await findNewestHtml(outputDir))
     : null;
   if (!html) throw new Error('Preview build completed, but no generated HTML file was found.');
-  const path = relative(playable.path, html.path);
+  const path = toPosixPath(relative(playable.path, html.path));
 
   return {
     slug,
     result,
     path,
-    url: `/generated/${encodeURIComponent(slug)}/${path.split('/').map(encodeURIComponent).join('/')}`
+    url: `/generated/${encodeURIComponent(slug)}/${encodeUrlPath(path)}`
   };
 }
 

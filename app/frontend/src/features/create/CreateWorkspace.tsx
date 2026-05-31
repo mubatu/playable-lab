@@ -287,9 +287,34 @@ const customStarterPrompts = [
 
 function CustomStarterPage({ onBack }: { onBack: () => void }) {
   const [copiedPromptIndex, setCopiedPromptIndex] = useState<number | null>(null);
+  const [starterPackDownloading, setStarterPackDownloading] = useState(false);
 
-  function downloadStarterPack() {
-    window.location.assign('/api/custom/starter-pack/download');
+  async function downloadStarterPack() {
+    if (starterPackDownloading) return;
+    setStarterPackDownloading(true);
+
+    try {
+      const response = await fetch('/api/custom/starter-pack/download');
+      if (!response.ok) {
+        const message = (await response.text()) || 'Starter pack download failed.';
+        throw new Error(message);
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = 'starter-pack.zip';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Starter pack download failed.';
+      window.alert(message);
+    } finally {
+      setStarterPackDownloading(false);
+    }
   }
 
   async function copyPrompt(prompt: string, index: number) {
@@ -313,9 +338,9 @@ function CustomStarterPage({ onBack }: { onBack: () => void }) {
             <h2 className="text-2xl font-semibold text-zinc-950">Custom</h2>
           </div>
         </div>
-        <Button variant="accent" onClick={downloadStarterPack}>
-          <Download className="size-4" />
-          Download starter pack
+        <Button variant="accent" disabled={starterPackDownloading} onClick={() => void downloadStarterPack()}>
+          {starterPackDownloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+          {starterPackDownloading ? 'Preparing starter pack...' : 'Download starter pack'}
         </Button>
       </div>
 

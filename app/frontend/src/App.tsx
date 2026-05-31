@@ -380,6 +380,7 @@ export default function App() {
 
     try {
       const url = await previewPlayable(selectedPlayable.slug);
+      console.log("---")
       if (previewWindow) previewWindow.location.href = new URL(url, window.location.origin).href;
       else showNotice('success', `Preview ready: ${url}`);
       await refreshBuilds(selectedPlayable.slug);
