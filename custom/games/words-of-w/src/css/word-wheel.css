@@ -1,0 +1,244 @@
+#wow-game-root {
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    pointer-events: none;
+    font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+}
+
+#wow-game-root * {
+    box-sizing: border-box;
+}
+
+.wow-hud {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.wow-status {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 210px;
+    text-align: center;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(8, 12, 24, 0.7);
+    color: #e7ecff;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.wow-word-slots {
+    position: absolute;
+    top: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    pointer-events: none;
+}
+
+.wow-word-slots__slot {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    background: rgba(7, 11, 21, 0.65);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.wow-word-slots__slot.is-filled {
+    border-color: rgba(123, 245, 143, 0.95);
+    background: rgba(56, 92, 64, 0.7);
+}
+
+.wow-word-slots.is-wrong .wow-word-slots__slot {
+    animation: wow-slot-shake 160ms ease-in-out 0s 2;
+    border-color: rgba(255, 96, 96, 0.95);
+}
+
+.wow-word-slots.is-solved .wow-word-slots__slot {
+    animation: wow-slot-pop 300ms ease;
+}
+
+.wow-letter-wheel {
+    position: absolute;
+    left: 50%;
+    bottom: 34px;
+    width: 320px;
+    height: 320px;
+    transform: translateX(-50%);
+    pointer-events: auto;
+}
+
+.wow-letter-wheel__ring {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 270px;
+    height: 270px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.17), rgba(39, 55, 95, 0.84));
+    border: 3px solid rgba(255, 255, 255, 0.28);
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.35);
+}
+
+.wow-letter-wheel__path {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.wow-letter-wheel__polyline {
+    fill: none;
+    stroke: rgba(255, 245, 138, 0.95);
+    stroke-width: 10;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35));
+}
+
+.wow-letter-wheel__tile {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 56px;
+    height: 56px;
+    margin-left: -28px;
+    margin-top: -28px;
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.55);
+    background: linear-gradient(180deg, #f8fbff, #b5c8ea);
+    color: #19243b;
+    font-size: 30px;
+    font-weight: 900;
+    text-transform: uppercase;
+    touch-action: none;
+    user-select: none;
+}
+
+.wow-letter-wheel__tile.is-selected {
+    background: linear-gradient(180deg, #fff7c2, #f0ca57);
+    border-color: rgba(255, 255, 255, 0.95);
+    transform-origin: center;
+}
+
+.wow-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: linear-gradient(180deg, rgba(8, 10, 22, 0.42), rgba(8, 10, 22, 0.78));
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 180ms ease, transform 180ms ease;
+    pointer-events: none;
+}
+
+.wow-overlay.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.wow-overlay__title {
+    color: #ffffff;
+    margin: 0;
+    font-size: clamp(34px, 7vw, 56px);
+    letter-spacing: 0.02em;
+}
+
+.wow-overlay__subtitle {
+    margin: 0;
+    color: #d8e2fd;
+    font-size: clamp(14px, 3.2vw, 19px);
+    text-align: center;
+}
+
+.wow-overlay__button {
+    pointer-events: none;
+    border: none;
+    border-radius: 999px;
+    padding: 13px 36px;
+    font-size: clamp(16px, 3.5vw, 22px);
+    font-weight: 900;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    color: #11172d;
+}
+
+.wow-overlay.is-visible .wow-overlay__button {
+    pointer-events: auto;
+}
+
+.wow-overlay__button--play {
+    background: linear-gradient(135deg, #ffd068, #f19749);
+}
+
+.wow-overlay__button--download {
+    background: linear-gradient(135deg, #a4ff8f, #4fce58);
+}
+
+@keyframes wow-slot-shake {
+    0% { transform: translateX(0); }
+    30% { transform: translateX(-3px); }
+    60% { transform: translateX(3px); }
+    100% { transform: translateX(0); }
+}
+
+@keyframes wow-slot-pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@media (max-width: 680px) {
+    .wow-letter-wheel {
+        width: 274px;
+        height: 274px;
+        bottom: 22px;
+    }
+
+    .wow-letter-wheel__ring {
+        width: 234px;
+        height: 234px;
+    }
+
+    .wow-letter-wheel__tile {
+        width: 48px;
+        height: 48px;
+        margin-left: -24px;
+        margin-top: -24px;
+        font-size: 25px;
+    }
+
+    .wow-word-slots__slot {
+        width: 42px;
+        height: 42px;
+        font-size: 24px;
+        border-radius: 10px;
+    }
+
+    .wow-word-slots {
+        top: 82px;
+        gap: 8px;
+    }
+}

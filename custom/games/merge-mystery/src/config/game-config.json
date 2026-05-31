@@ -1,0 +1,53 @@
+{
+    "background": {
+        "texturePath": "src/assets/background.png",
+        "sourceWidth": 1080,
+        "sourceHeight": 1920,
+        "worldHeight": 19.2
+    },
+    "board": {
+        "columns": 6,
+        "rows": 8,
+        "gap": 0.16,
+        "padding": 0.24,
+        "maxWidth": 9.2,
+        "maxHeight": 11.6,
+        "offsetY": -1.7,
+        "backgroundColor": "#43bde3",
+        "cellColor": "#90d7d3"
+    },
+    "pieces": {
+        "texturePaths": [
+            "src/assets/cake-1.png",
+            "src/assets/cake-2.png",
+            "src/assets/cake-3.png",
+            "src/assets/cake-4.png"
+        ],
+        "initialTier": 1,
+        "scale": 1,
+        "dragScale": 1.08,
+        "baseZ": 0.2,
+        "dragZ": 0.45
+    },
+    "tutorial": {
+        "enabled": true,
+        "assetUrl": "src/assets/hand-2.png",
+        "gesture": "drag",
+        "size": 132,
+        "duration": 1.1,
+        "loopDelay": 0.4,
+        "startDelayMs": 450,
+        "from": {
+            "space": "grid",
+            "row": 2,
+            "column": 2,
+            "z": 0.2
+        },
+        "to": {
+            "space": "grid",
+            "row": 3,
+            "column": 3,
+            "z": 0.2
+        }
+    }
+}
