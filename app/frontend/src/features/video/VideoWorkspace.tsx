@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Hand, Loader2, Pause, Play, Plus, Save, Scissors, Trash2, Upload } from 'lucide-react';
-import type { VideoDraft, VideoPlayable, VideoStopover } from '../../types';
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Hand, Loader2, Pause, Play, Plus, RotateCw, Save, Scissors, Trash2, Upload } from 'lucide-react';
+import type { VideoDraft, VideoGuideId, VideoPlayable, VideoStopover } from '../../types';
 import { Button } from '../../components/ui';
 import { cx, formatBytes } from '../../lib/appUtils';
 
@@ -13,7 +13,9 @@ type EditorVideoSource = {
 };
 
 type EditPhase = 'idle' | 'input' | 'hand';
-type DragKind = 'rect-move' | 'hand-move' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+type ResizeHandle = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+type GuideResizeKind = `hand-${ResizeHandle}`;
+type DragKind = 'rect-move' | 'hand-move' | 'hand-rotate' | ResizeHandle | GuideResizeKind;
 
 type VideoLayout = {
   x: number;
@@ -34,6 +36,13 @@ const DEFAULT_INPUT_AREA = {
 };
 const HAND_SIZE_PX = 80;
 const DEFAULT_HAND_WIDTH = 0.2;
+const DEFAULT_GUIDE_ID: VideoGuideId = 'guide-1';
+const RESIZE_HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const satisfies readonly ResizeHandle[];
+const VIDEO_GUIDES = [
+  { id: 'guide-1', label: 'Guide 1', src: '/video-template-assets/src/assets/guide-1.png' },
+  { id: 'guide-2', label: 'Guide 2', src: '/video-template-assets/src/assets/guide-2.png' },
+  { id: 'guide-3', label: 'Guide 3', src: '/video-template-assets/src/assets/guide-3.png' }
+] as const satisfies readonly { id: VideoGuideId; label: string; src: string }[];
 
 export function VideoWorkspace({
   mode,
@@ -215,6 +224,10 @@ function VideoStopoverEditor({
     startX: number;
     startY: number;
     startStopover: DraftStopover;
+    centerClientX?: number;
+    centerClientY?: number;
+    startAngleDeg?: number;
+    startRotationDeg?: number;
   } | null>(null);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -270,9 +283,20 @@ function VideoStopoverEditor({
       const drag = dragRef.current;
       if (!drag) return;
       event.preventDefault();
+      if (
+        drag.kind === 'hand-rotate' &&
+        drag.centerClientX !== undefined &&
+        drag.centerClientY !== undefined &&
+        drag.startAngleDeg !== undefined &&
+        drag.startRotationDeg !== undefined
+      ) {
+        const currentAngleDeg = getAngleDeg(event.clientX, event.clientY, drag.centerClientX, drag.centerClientY);
+        setDraftStopover(rotateGuide(drag.startStopover, drag.startRotationDeg + currentAngleDeg - drag.startAngleDeg));
+        return;
+      }
       const dx = (event.clientX - drag.startX) / layout.width;
       const dy = (event.clientY - drag.startY) / layout.height;
-      setDraftStopover(transformStopover(drag.startStopover, drag.kind, dx, dy));
+      setDraftStopover(transformStopover(drag.startStopover, drag.kind, dx, dy, layout));
     }
 
     function handlePointerUp(event: PointerEvent) {
@@ -361,7 +385,9 @@ function VideoStopoverEditor({
       hand: {
         centerX: rect.x + rect.width / 2,
         centerY: rect.y + rect.height / 2,
-        width: getHandWidth(layout)
+        width: getHandWidth(layout),
+        guideId: DEFAULT_GUIDE_ID,
+        rotationDeg: 0
       }
     });
     setPhase('input');
@@ -370,7 +396,15 @@ function VideoStopoverEditor({
   function editStopover(stopover: VideoStopover) {
     videoRef.current?.pause();
     seekTo(stopover.timeMs / 1000);
-    setDraftStopover({ ...stopover, editingId: stopover.id });
+    setDraftStopover({
+      ...stopover,
+      hand: {
+        ...stopover.hand,
+        guideId: stopover.hand.guideId || DEFAULT_GUIDE_ID,
+        rotationDeg: normalizeRotation(stopover.hand.rotationDeg || 0)
+      },
+      editingId: stopover.id
+    });
     setPhase('input');
   }
 
@@ -381,10 +415,24 @@ function VideoStopoverEditor({
       hand: {
         centerX: draftStopover.inputArea.x + draftStopover.inputArea.width / 2,
         centerY: draftStopover.inputArea.y + draftStopover.inputArea.height / 2,
-        width: draftStopover.hand.width || getHandWidth(layout)
+        width: draftStopover.hand.width || getHandWidth(layout),
+        guideId: draftStopover.hand.guideId || DEFAULT_GUIDE_ID,
+        rotationDeg: draftStopover.hand.rotationDeg || 0
       }
     });
     setPhase('hand');
+  }
+
+  function selectGuide(guideId: VideoGuideId) {
+    setDraftStopover((stopover) => stopover
+      ? {
+          ...stopover,
+          hand: {
+            ...stopover.hand,
+            guideId
+          }
+        }
+      : stopover);
   }
 
   function setHand() {
@@ -416,18 +464,26 @@ function VideoStopoverEditor({
     if (!draftStopover) return;
     event.preventDefault();
     event.stopPropagation();
+    const guideCenter = kind === 'hand-rotate' ? getPointClientCenter(draftStopover.hand, layout, frameRef.current) : null;
+    const startAngleDeg = guideCenter ? getAngleDeg(event.clientX, event.clientY, guideCenter.x, guideCenter.y) : undefined;
     dragRef.current = {
       kind,
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
-      startStopover: draftStopover
+      startStopover: draftStopover,
+      centerClientX: guideCenter?.x,
+      centerClientY: guideCenter?.y,
+      startAngleDeg,
+      startRotationDeg: draftStopover.hand.rotationDeg || 0
     };
   }
 
   const draftRectStyle = draftStopover ? rectStyle(draftStopover.inputArea, layout) : undefined;
   const draftHandStyle = draftStopover ? pointStyle(draftStopover.hand, layout) : undefined;
   const timelineProgress = duration > 0 ? Math.max(0, Math.min(100, (currentTime / duration) * 100)) : 0;
+  const selectedGuideId = draftStopover?.hand.guideId || DEFAULT_GUIDE_ID;
+  const selectedGuide = getGuideOption(selectedGuideId);
 
   return (
     <div className="grid gap-5 p-5">
@@ -462,7 +518,7 @@ function VideoStopoverEditor({
               >
                 {phase === 'input' ? (
                   <>
-                    {(['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as DragKind[]).map((handle) => (
+                    {RESIZE_HANDLES.map((handle) => (
                       <span
                         key={handle}
                         className={cx('absolute size-3 rounded-full border border-white bg-blue-600 shadow', handleClass(handle))}
@@ -478,11 +534,25 @@ function VideoStopoverEditor({
               <button
                 type="button"
                 aria-label="Move hand"
-                className="absolute z-20 grid cursor-move place-items-center border-0 bg-transparent p-0"
+                className="absolute z-20 grid cursor-move place-items-center rounded-md border-2 border-white bg-blue-500/10 p-0 shadow-[0_0_0_2px_rgba(37,99,235,0.9),0_14px_34px_rgba(0,0,0,0.3)]"
                 style={draftHandStyle}
                 onPointerDown={(event) => startDrag('hand-move', event)}
               >
-                <img className="size-full object-contain drop-shadow-xl" src="/video-template-assets/src/assets/hand.png" alt="" />
+                <img className="size-full object-contain drop-shadow-xl" src={selectedGuide.src} alt="" />
+                <span
+                  className="absolute left-1/2 top-0 grid size-7 -translate-x-1/2 -translate-y-11 cursor-grab place-items-center rounded-full border border-white bg-blue-600 text-white shadow active:cursor-grabbing"
+                  onPointerDown={(event) => startDrag('hand-rotate', event)}
+                >
+                  <RotateCw className="size-4" />
+                </span>
+                <span className="pointer-events-none absolute left-1/2 top-0 h-8 w-0.5 -translate-x-1/2 -translate-y-8 bg-blue-600" />
+                {RESIZE_HANDLES.map((handle) => (
+                  <span
+                    key={handle}
+                    className={cx('absolute size-3 rounded-full border border-white bg-blue-600 shadow', handleClass(handle))}
+                    onPointerDown={(event) => startDrag(`hand-${handle}`, event)}
+                  />
+                ))}
               </button>
             ) : null}
           </div>
@@ -504,10 +574,32 @@ function VideoStopoverEditor({
               </Button>
             ) : null}
             {phase === 'hand' ? (
-              <Button onClick={setHand}>
-                <Hand className="size-4" />
-                Set Hand
-              </Button>
+              <>
+                <div className="grid gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">Guide</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {VIDEO_GUIDES.map((guide) => (
+                      <button
+                        key={guide.id}
+                        type="button"
+                        aria-label={`Use ${guide.label}`}
+                        aria-pressed={selectedGuideId === guide.id}
+                        className={cx(
+                          'grid aspect-square place-items-center rounded-md border bg-white p-2 transition hover:border-blue-300 hover:bg-blue-50',
+                          selectedGuideId === guide.id ? 'border-blue-600 ring-2 ring-blue-600/20' : 'border-zinc-300'
+                        )}
+                        onClick={() => selectGuide(guide.id)}
+                      >
+                        <img className="max-h-full max-w-full object-contain drop-shadow" src={guide.src} alt="" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Button onClick={setHand}>
+                  <Hand className="size-4" />
+                  Set Hand
+                </Button>
+              </>
             ) : null}
             {phase !== 'idle' ? (
               <Button
@@ -662,6 +754,10 @@ function VideoNameDialog({
   );
 }
 
+function getGuideOption(guideId: VideoGuideId) {
+  return VIDEO_GUIDES.find((guide) => guide.id === guideId) || VIDEO_GUIDES[0];
+}
+
 function computeVideoLayout(frame: HTMLDivElement | null, video: HTMLVideoElement | null): VideoLayout {
   const frameRect = frame?.getBoundingClientRect();
   if (!frameRect) return { x: 0, y: 0, width: 1, height: 1 };
@@ -695,7 +791,7 @@ function pointStyle(point: VideoStopover['hand'], layout: VideoLayout): CSSPrope
     top: layout.y + point.centerY * layout.height,
     width,
     height: width,
-    transform: 'translate(-50%, -50%)'
+    transform: `translate(-50%, -50%) rotate(${point.rotationDeg || 0}deg)`
   };
 }
 
@@ -721,18 +817,46 @@ function clampPoint(point: VideoStopover['hand']): VideoStopover['hand'] {
   return {
     centerX: Math.max(0, Math.min(1, point.centerX)),
     centerY: Math.max(0, Math.min(1, point.centerY)),
-    width: Math.max(0.08, Math.min(0.5, point.width || DEFAULT_HAND_WIDTH))
+    width: Math.max(0.08, Math.min(0.5, point.width || DEFAULT_HAND_WIDTH)),
+    guideId: point.guideId || DEFAULT_GUIDE_ID,
+    rotationDeg: normalizeRotation(point.rotationDeg || 0)
   };
 }
 
-function transformStopover(stopover: DraftStopover, kind: DragKind, dx: number, dy: number): DraftStopover {
+function rotateGuide(stopover: DraftStopover, rotationDeg: number): DraftStopover {
+  return {
+    ...stopover,
+    hand: clampPoint({
+      ...stopover.hand,
+      rotationDeg: normalizeRotation(rotationDeg)
+    })
+  };
+}
+
+function transformStopover(stopover: DraftStopover, kind: DragKind, dx: number, dy: number, layout: VideoLayout): DraftStopover {
   if (kind === 'hand-move') {
     return {
       ...stopover,
       hand: clampPoint({
+        ...stopover.hand,
         centerX: stopover.hand.centerX + dx,
         centerY: stopover.hand.centerY + dy,
         width: stopover.hand.width
+      })
+    };
+  }
+
+  if (kind.startsWith('hand-') && kind !== 'hand-rotate') {
+    const handle = kind.replace('hand-', '') as ResizeHandle;
+    const verticalScale = Number.isFinite(layout.height / layout.width) && layout.width > 0 ? layout.height / layout.width : 1;
+    const horizontalDelta = handle.includes('e') ? dx : handle.includes('w') ? -dx : 0;
+    const verticalDelta = (handle.includes('s') ? dy : handle.includes('n') ? -dy : 0) * verticalScale;
+    const widthDelta = Math.abs(horizontalDelta) > Math.abs(verticalDelta) ? horizontalDelta : verticalDelta;
+    return {
+      ...stopover,
+      hand: clampPoint({
+        ...stopover.hand,
+        width: (stopover.hand.width || DEFAULT_HAND_WIDTH) + widthDelta
       })
     };
   }
@@ -759,7 +883,23 @@ function transformStopover(stopover: DraftStopover, kind: DragKind, dx: number, 
   return { ...stopover, inputArea: next };
 }
 
-function handleClass(handle: DragKind) {
+function getPointClientCenter(point: VideoStopover['hand'], layout: VideoLayout, frame: HTMLDivElement | null) {
+  const frameRect = frame?.getBoundingClientRect();
+  return {
+    x: (frameRect?.left || 0) + layout.x + point.centerX * layout.width,
+    y: (frameRect?.top || 0) + layout.y + point.centerY * layout.height
+  };
+}
+
+function getAngleDeg(pointerX: number, pointerY: number, centerX: number, centerY: number) {
+  return Math.atan2(pointerY - centerY, pointerX - centerX) * 180 / Math.PI;
+}
+
+function normalizeRotation(rotationDeg: number) {
+  return ((((rotationDeg + 180) % 360) + 360) % 360) - 180;
+}
+
+function handleClass(handle: ResizeHandle) {
   const classes: Record<string, string> = {
     nw: '-left-1.5 -top-1.5 cursor-nwse-resize',
     n: 'left-1/2 -top-1.5 -translate-x-1/2 cursor-ns-resize',

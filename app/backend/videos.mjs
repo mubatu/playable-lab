@@ -7,6 +7,8 @@ import { pathExists, safeJoin, slugify } from './paths.mjs';
 
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 const DEFAULT_HAND_WIDTH = 0.2;
+const DEFAULT_GUIDE_ID = 'guide-1';
+const VIDEO_GUIDE_IDS = new Set(['guide-1', 'guide-2', 'guide-3']);
 const VIDEO_EXTENSIONS = new Set(['.m4v', '.mov', '.mp4', '.webm']);
 const DEFAULT_BUILD_CONFIG = {
   outDir: 'builds',
@@ -45,6 +47,11 @@ function normalizeNumber(value, fallback) {
   return Number.isFinite(numberValue) ? numberValue : fallback;
 }
 
+function normalizeRotation(value) {
+  const rotation = normalizeNumber(value, 0);
+  return ((((rotation + 180) % 360) + 360) % 360) - 180;
+}
+
 function normalizeRect(rect) {
   const x = Math.max(0, Math.min(1, normalizeNumber(rect?.x, 0)));
   const y = Math.max(0, Math.min(1, normalizeNumber(rect?.y, 0)));
@@ -54,10 +61,13 @@ function normalizeRect(rect) {
 }
 
 function normalizePoint(point) {
+  const guideId = VIDEO_GUIDE_IDS.has(point?.guideId) ? point.guideId : DEFAULT_GUIDE_ID;
   return {
     centerX: Math.max(0, Math.min(1, normalizeNumber(point?.centerX, 0.5))),
     centerY: Math.max(0, Math.min(1, normalizeNumber(point?.centerY, 0.5))),
-    width: Math.max(0.08, Math.min(0.5, normalizeNumber(point?.width, DEFAULT_HAND_WIDTH)))
+    width: Math.max(0.08, Math.min(0.5, normalizeNumber(point?.width, DEFAULT_HAND_WIDTH))),
+    guideId,
+    rotationDeg: normalizeRotation(point?.rotationDeg)
   };
 }
 
@@ -101,6 +111,21 @@ export const VIDEO_STOPOVERS = ${JSON.stringify(stopovers, null, 2)} as const;
 
 export type VideoStopover = (typeof VIDEO_STOPOVERS)[number];
 `;
+}
+
+async function syncVideoRuntimeFromTemplate(context, playableDir) {
+  const templateSrcDir = join(context.videoTemplateDir, 'src');
+  const playableSrcDir = join(playableDir, 'src');
+  await cp(join(templateSrcDir, 'index.ts'), join(playableSrcDir, 'index.ts'));
+  await cp(join(templateSrcDir, 'styles.css'), join(playableSrcDir, 'styles.css'));
+  await cp(join(templateSrcDir, 'ui'), join(playableSrcDir, 'ui'), { recursive: true });
+
+  const templateAssetDir = join(templateSrcDir, 'assets');
+  const playableAssetDir = join(playableSrcDir, 'assets');
+  await mkdir(playableAssetDir, { recursive: true });
+  await Promise.all(
+    [...VIDEO_GUIDE_IDS].map((guideId) => cp(join(templateAssetDir, `${guideId}.png`), join(playableAssetDir, `${guideId}.png`)))
+  );
 }
 
 export async function uploadVideoDraft(context, req) {
@@ -218,6 +243,7 @@ export async function updateVideoPlayable(context, slug, payload) {
     updatedAt: new Date().toISOString()
   };
 
+  await syncVideoRuntimeFromTemplate(context, playableDir);
   await writeFile(join(playableDir, 'src', 'videoData.ts'), createVideoDataSource(playable.video.fileName, stopovers));
   await writeFile(join(playableDir, 'playable.json'), `${JSON.stringify(metadata, null, 2)}\n`);
 

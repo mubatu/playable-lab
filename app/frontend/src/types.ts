@@ -108,6 +108,8 @@ export interface VideoDraft {
   createdAt?: string;
 }
 
+export type VideoGuideId = 'guide-1' | 'guide-2' | 'guide-3';
+
 export interface VideoStopover {
   id: string;
   timeMs: number;
@@ -121,6 +123,8 @@ export interface VideoStopover {
     centerX: number;
     centerY: number;
     width: number;
+    guideId?: VideoGuideId;
+    rotationDeg?: number;
   };
 }
 

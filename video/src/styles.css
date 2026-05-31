@@ -54,7 +54,7 @@ body {
   object-fit: contain;
   pointer-events: none;
   filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.34));
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) rotate(var(--guide-rotation, 0deg));
   animation: video-hand-pulse 1100ms ease-in-out infinite;
 }
 
@@ -66,11 +66,11 @@ body {
 @keyframes video-hand-pulse {
   0%,
   100% {
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%) rotate(var(--guide-rotation, 0deg)) scale(1);
   }
 
   50% {
-    transform: translate(-50%, -50%) scale(1.1);
+    transform: translate(-50%, -50%) rotate(var(--guide-rotation, 0deg)) scale(1.1);
   }
 }
 
