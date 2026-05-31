@@ -617,7 +617,7 @@ function VideoStopoverEditor({
                   </div>
                   <Button onClick={setHand}>
                     <Hand className="size-4" />
-                    Set Hand
+                    Set Guide
                   </Button>
                 </>
               ) : null}
