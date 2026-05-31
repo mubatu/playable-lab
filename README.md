@@ -1,25 +1,64 @@
-# playable-lab
+# Playable Lab
 
-Run the lab from the repo root:
+Playable Lab is a local workspace for creating playable ads faster. It gives the team three paths:
+
+- **Template**: start from a ready-made playable, replace assets, tune config, preview, and build.
+- **Video**: upload gameplay footage, add interactive stopovers, customize the end button, and export it as a playable.
+- **Custom**: download a starter pack with reusable modules and example games for bespoke playable development.
+
+## Run
+
+From the `playable-lab` folder:
 
 ```sh
+npm install
 npm run dev
 ```
 
-The lab currently supports a saved Template flow for `Catcher`:
+Then open:
 
-- open `Create Playable`
-- choose `Catcher`
-- enter a playable name
-- upload `end-background.png`
-- upload one or more `target-*.png` files
-- edit standard or advanced config fields
-- click `Create`
+```txt
+http://127.0.0.1:3000
+```
 
-Create generates a local project under `my-playables/<playable-name>/`, injects the uploaded assets and config, and keeps the original template files unchanged.
+## Workflow
 
-Use `My Playables` to see projects generated under `my-playables`.
+1. Open **Create Playable**.
+2. Choose **Template**, **Video**, or **Custom**.
+3. Create or download the playable source.
+4. Use **My Playables** to edit, preview, and build saved projects.
 
-- `Preview` runs a `preview` network build for the selected playable and opens the generated HTML in a new tab.
-- `Build` opens a modal populated from that playable's `build.json`, saves edited build parameters back to `build.json`, lets you choose supported ad networks, and runs one build per selected network.
-- The selected playable also shows files generated under its build output folder. HTML builds can be opened in a new tab, and any listed build file can be deleted.
+Generated playables are stored locally in:
+
+```txt
+my-playables/<playable-name>/
+```
+
+Template and video creation copy source files into `my-playables`, so the original kits stay unchanged.
+
+## Build And Preview
+
+From **My Playables**:
+
+- **Edit** updates assets, gameplay parameters, or video stopovers.
+- **Preview** creates a local preview build and opens the generated HTML.
+- **Build** edits `build.json`, selects supported ad networks, and runs one build per selected network.
+- Build artifacts are listed in the app and can be opened or deleted from the workspace.
+
+## Project Layout
+
+```txt
+app/            Local React app and Node API
+templates/      Template-based playable kits
+video/          Video playable runtime
+custom/         Starter pack source for custom playables
+my-playables/   Locally generated playable projects
+```
+
+## Scripts
+
+```sh
+npm run dev      # start the local lab
+npm run build    # build the frontend app
+npm run check    # run TypeScript checks
+```
