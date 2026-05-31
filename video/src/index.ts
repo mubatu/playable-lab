@@ -1,5 +1,7 @@
 import { sdk } from '@smoud/playable-sdk';
-import handSrc from './assets/hand.png';
+import guide1Src from './assets/guide-1.png';
+import guide2Src from './assets/guide-2.png';
+import guide3Src from './assets/guide-3.png';
 import './styles.css';
 import { EndScreen } from './ui/EndScreen';
 import { VIDEO_SOURCE, VIDEO_STOPOVERS } from './videoData';
@@ -15,7 +17,11 @@ type NormalizedPoint = {
   centerX: number;
   centerY: number;
   width?: number;
+  guideId?: VideoGuideId;
+  rotationDeg?: number;
 };
+
+type VideoGuideId = 'guide-1' | 'guide-2' | 'guide-3';
 
 type RuntimeStopover = {
   id: string;
@@ -25,6 +31,12 @@ type RuntimeStopover = {
 };
 
 const DEFAULT_HAND_WIDTH = 0.2;
+const DEFAULT_GUIDE_ID: VideoGuideId = 'guide-1';
+const GUIDE_SOURCES: Record<VideoGuideId, string> = {
+  'guide-1': guide1Src,
+  'guide-2': guide2Src,
+  'guide-3': guide3Src
+};
 
 class VideoPlayableApp {
   private readonly root: HTMLElement;
@@ -62,7 +74,7 @@ class VideoPlayableApp {
     this.hand.className = 'video-app__hand';
     this.hand.alt = '';
     this.hand.draggable = false;
-    this.hand.src = handSrc;
+    this.hand.src = GUIDE_SOURCES[DEFAULT_GUIDE_ID];
 
     this.endScreen = new EndScreen(this.shell, {
       onInstall: options.onInstall
@@ -178,6 +190,7 @@ class VideoPlayableApp {
     const layout = this.getVideoLayout();
     const area = this.activeStopover.inputArea;
     const hand = this.activeStopover.hand;
+    this.hand.src = GUIDE_SOURCES[hand.guideId || DEFAULT_GUIDE_ID] || GUIDE_SOURCES[DEFAULT_GUIDE_ID];
 
     this.hotspot.style.left = `${layout.x + area.x * layout.width}px`;
     this.hotspot.style.top = `${layout.y + area.y * layout.height}px`;
@@ -188,6 +201,7 @@ class VideoPlayableApp {
     const handSize = (hand.width || DEFAULT_HAND_WIDTH) * layout.width;
     this.hand.style.width = `${handSize}px`;
     this.hand.style.height = `${handSize}px`;
+    this.hand.style.setProperty('--guide-rotation', `${hand.rotationDeg || 0}deg`);
   }
 
   private getVideoLayout(): { x: number; y: number; width: number; height: number } {

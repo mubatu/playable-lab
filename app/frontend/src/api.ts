@@ -6,6 +6,7 @@ import type {
   PlayableTemplate,
   UploadedFilePayload,
   VideoDraft,
+  VideoEndButtonConfig,
   VideoPlayable,
   VideoStopover
 } from './types';
@@ -46,6 +47,7 @@ export async function createVideoPlayable(payload: {
   name: string;
   draftId: string;
   stopovers: VideoStopover[];
+  endButton: VideoEndButtonConfig;
 }): Promise<Playable> {
   const body = await readJson<{ playable: Playable }>(
     await fetch('/api/video-playables', {
@@ -66,6 +68,7 @@ export async function updateVideoPlayable(
   slug: string,
   payload: {
     stopovers: VideoStopover[];
+    endButton: VideoEndButtonConfig;
   }
 ): Promise<Playable> {
   const body = await readJson<{ playable: Playable }>(
