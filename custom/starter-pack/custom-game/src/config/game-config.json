@@ -1,0 +1,10 @@
+{
+  "meta": {
+    "name": "custom-starter-cube",
+    "orientation": "portrait"
+  },
+  "gameplay": {
+    "rotateSpeedX": 0.01,
+    "rotateSpeedY": 0.015
+  }
+}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactNode, RefObject } from 'react';
-import { ArrowLeft, Code2, ImageIcon, LayoutTemplate, Loader2, Play, Plus, RotateCcw, Save, SlidersHorizontal, Video } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Check, Code2, Copy, Download, ImageIcon, LayoutTemplate, Loader2, Play, Plus, RotateCcw, Save, SlidersHorizontal, Sparkles, Terminal, Video } from 'lucide-react';
 import blastIcon from '../../assets/blast-icon.png';
 import catcherIcon from '../../assets/catcher-icon.png';
 import type { AssetOptionsById, CreateFormTab } from '../../appTypes';
@@ -52,7 +52,7 @@ export function CreateWorkspace({
 }) {
   const isEditing = mode === 'edit';
   const isEditingVideo = Boolean(editingVideoPlayable);
-  const [step, setStep] = useState<'source' | 'templates' | 'form' | 'video'>(isEditing ? 'form' : 'source');
+  const [step, setStep] = useState<'source' | 'templates' | 'form' | 'video' | 'custom'>(isEditing ? 'form' : 'source');
   const [activeFormTab, setActiveFormTab] = useState<CreateFormTab>('assets');
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
   const [newPlayableName, setNewPlayableName] = useState('');
@@ -147,13 +147,17 @@ export function CreateWorkspace({
         <SourceChoiceCard
           icon={<Code2 className="size-9" />}
           title="Custom"
-          description="Begin with a blank bespoke playable flow once custom project scaffolding lands."
+          description="Download the starter pack and shape a bespoke playable with reusable modules and examples."
           advantages={['Maximum creative control', 'Flexible interaction design', 'Tailored gameplay structure']}
           tone="orange"
-          disabled
+          onClick={() => setStep('custom')}
         />
       </section>
     );
+  }
+
+  if (!isEditing && step === 'custom') {
+    return <CustomStarterPage onBack={() => setStep('source')} />;
   }
 
   if (isEditingVideo || (!isEditing && step === 'video')) {
@@ -273,6 +277,100 @@ export function CreateWorkspace({
   );
 }
 
+const customStarterPrompts = [
+  'Read reusables/ first, reuse its modules, and review how games/ uses them. Then create a swipe-based endless runner where the player dodges obstacles and collects boosters. Keep one-touch controls and a replay CTA.',
+  'Read reusables/ first, reuse its modules, and review how games/ uses them. Then build a match-3 mini puzzle with a 30-second timer, combo scoring, and a final win panel with install button.',
+  'Read reusables/ first, reuse its modules, and review how games/ uses them. Then design a merge game prototype using drag-and-drop pieces, progressive tiers, and particle feedback on successful merges.',
+  'Read reusables/ first, reuse its modules, and review how games/ uses them. Then generate a tower-defense style lane game with tap-to-deploy units, simple enemy waves, and a progress bar HUD.',
+  'Read reusables/ first, reuse its modules, and review how games/ uses them. Then create a physics slingshot challenge where users pull, aim, and release projectiles to hit targets in three short rounds.'
+];
+
+function CustomStarterPage({ onBack }: { onBack: () => void }) {
+  const [copiedPromptIndex, setCopiedPromptIndex] = useState<number | null>(null);
+
+  function downloadStarterPack() {
+    window.location.assign('/api/custom/starter-pack/download');
+  }
+
+  async function copyPrompt(prompt: string, index: number) {
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopiedPromptIndex(index);
+      window.setTimeout(() => setCopiedPromptIndex((currentIndex) => (currentIndex === index ? null : currentIndex)), 1600);
+    } catch {
+      setCopiedPromptIndex(null);
+    }
+  }
+
+  return (
+    <section className="rounded-md border border-zinc-200 bg-white">
+      <div className="flex flex-col gap-4 border-b border-zinc-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <Button variant="secondary" iconOnly ariaLabel="Back to creation types" onClick={onBack}>
+            <ArrowLeft className="size-4" />
+          </Button>
+          <div className="min-w-0">
+            <h2 className="text-2xl font-semibold text-zinc-950">Custom</h2>
+          </div>
+        </div>
+        <Button variant="accent" onClick={downloadStarterPack}>
+          <Download className="size-4" />
+          Download starter pack
+        </Button>
+      </div>
+
+      <div className="grid gap-6 p-5">
+        <div className="grid gap-4 rounded-md border border-amber-200 bg-amber-50 p-5 text-amber-950">
+          <div className="flex gap-3">
+            <span className="grid size-8 shrink-0 place-items-center rounded-md bg-white text-amber-700 ring-1 ring-amber-200">
+              <Sparkles className="size-4" />
+            </span>
+            <p className="text-base leading-7">
+              Use these starter prompts with your preferred generation workflow, then adapt the downloaded scaffold.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <span className="grid size-8 shrink-0 place-items-center rounded-md bg-white text-amber-700 ring-1 ring-amber-200">
+              <AlertTriangle className="size-4" />
+            </span>
+            <p className="text-base leading-7">
+              <span className="font-semibold">Important for every prompt:</span> tell the AI agent to read reusables/ first, reuse modules from there, and inspect implementations under games/ to follow existing usage patterns.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <span className="grid size-8 shrink-0 place-items-center rounded-md bg-white text-amber-700 ring-1 ring-amber-200">
+              <Terminal className="size-4" />
+            </span>
+            <p className="text-base leading-7">
+              <span className="font-semibold">Quick start for the starter pack:</span> unzip the downloaded archive, open a terminal, run <code className="rounded bg-white/75 px-1.5 py-0.5 text-xs font-semibold">cd custom-game</code>, then run <code className="rounded bg-white/75 px-1.5 py-0.5 text-xs font-semibold">npx vite</code> to launch the sample rotating-cube scene.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-3">
+          {customStarterPrompts.map((prompt, index) => (
+            <article key={prompt} className="rounded-md border border-zinc-200 bg-white p-4 shadow-sm shadow-zinc-950/5 transition hover:border-amber-300 hover:bg-amber-50/40">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="max-w-6xl text-sm leading-6 text-zinc-700">{prompt}</p>
+                </div>
+                <Button
+                  variant={copiedPromptIndex === index ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={() => void copyPrompt(prompt, index)}
+                >
+                  {copiedPromptIndex === index ? <Check className="size-4" /> : <Copy className="size-4" />}
+                  {copiedPromptIndex === index ? 'Copied' : 'Copy'}
+                </Button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function CreateNameDialog({
   value,
   loading,
@@ -386,7 +484,7 @@ function SourceChoiceCard({
   const toneClasses = {
     blue: 'border-blue-200 bg-blue-50 text-blue-950 hover:border-blue-300 hover:bg-blue-100',
     purple: 'border-purple-200 bg-purple-50 text-purple-950 hover:border-purple-300 hover:bg-purple-100',
-    orange: 'border-amber-200 bg-amber-50 text-amber-950'
+    orange: 'border-amber-200 bg-amber-50 text-amber-950 hover:border-amber-300 hover:bg-amber-100'
   };
   const iconClasses = {
     blue: 'bg-blue-600 text-white',
