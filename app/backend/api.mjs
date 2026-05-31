@@ -5,6 +5,7 @@ import {
   listPlayableBuilds,
   previewPlayable
 } from './builds.mjs';
+import { downloadStarterPack } from './custom.mjs';
 import { readRequestJson, sendJson } from './http.mjs';
 import {
   createPlayable,
@@ -30,6 +31,11 @@ export async function handleApi(context, req, res) {
 
   if (req.method === 'GET' && requestUrl.pathname === '/api/playables') {
     sendJson(res, 200, { playables: await listPlayables(context) });
+    return;
+  }
+
+  if (req.method === 'GET' && requestUrl.pathname === '/api/custom/starter-pack/download') {
+    await downloadStarterPack(context, res);
     return;
   }
 
