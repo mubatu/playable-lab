@@ -1,6 +1,7 @@
 node_modules
 .DS_Store
 app/dist
+dist-site
 .video-drafts
 my-playables/*
 !my-playables/.gitkeep

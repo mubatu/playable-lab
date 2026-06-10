@@ -61,4 +61,24 @@ my-playables/   Locally generated playable projects
 npm run dev      # start the local lab
 npm run build    # build the frontend app
 npm run check    # run TypeScript checks
+npm run dev:site # preview the public landing page
+npm run build:site # build the public landing page
 ```
+
+## Public Website
+
+The public landing page lives in `site/` and is intentionally separate from the
+local workspace UI and Node API. It stays in this repository so the product,
+documentation, and website can evolve together without adding another clone or
+release workflow.
+
+For Cloudflare Pages, connect this GitHub repository with:
+
+```txt
+Build command: npm run build:site
+Build output directory: dist-site
+Root directory: /
+```
+
+The website is static. The local workspace remains available only after cloning
+the repository and running `npm run dev`.
